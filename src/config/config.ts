@@ -7,8 +7,11 @@ interface Config {
   nodeEnv: string;
 }
 
+const port = process.env.PORT;
+if (!port) throw new Error('PORT is required');
+
 const config: Config = {
-  port: Number(process.env.PORT),
+  port: Number(port),
   nodeEnv: process.env.NODE_ENV || 'development',
 };
 
