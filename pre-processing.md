@@ -43,13 +43,12 @@ variants <- intersect(WHO_variants, stave_variants)
 
 # Iterate over each in-scope variant, calculate imputed prevalence per survey
 # (only surveys with a non-zero denominator), and combine into one tibble.
-prevalence_list <- lapply(variants, function(v) {
-  df <- stave_obj$get_prevalence(target_variant = v, return_full = FALSE)
-  df$variant <- v
-  df
-})
-
-prevalence_tbl <- do.call(rbind, prevalence_list)
+prevalence_tbl <- variants |>
+  lapply(function(v) {
+    stave_obj$get_prevalence(target_variant = v, return_full = FALSE) |>
+      mutate(variant = v)
+  }) |>
+  bind_rows()
 
 # Parse gene/locus/aa from each variant string using variantstring's own parser.
 # Since `variants` comes from get_variants(), the variant strings are guaranteed to be single-locus,
@@ -68,17 +67,19 @@ if (any(n_rows != 1)) {
   ))
 }
 
-parsed <- do.call(rbind, parsed_list)
+parsed <- bind_rows(parsed_list)
 
-prevalence_tbl$gene     <- parsed$gene
-prevalence_tbl$mutation <- paste0(parsed$pos, parsed$aa)
+prevalence_tbl <- prevalence_tbl |>
+  mutate(
+    gene     = parsed$gene,
+    mutation = paste0(parsed$pos, parsed$aa)
+  )
 
-# Because of an encoding error, force conversion to UTF-8.
+# Because of encoding errors in paper titles, we need to force conversion to UTF-8.
 # (The error (from DuckDB) was: Invalid Input Error: Invalid string encoding found in Parquet file: value "Temporal Trends in Artemisinin Partial Resistance and Other Antimalarial Drug Mutations in Plasmodium falciparum from Kagera Region, Northwestern Tanzania, 2021\xD02023" is not valid UTF8!)
 
-# Try UTF-8 first, and if invalid, assume Latin-1
+# This function tries UTF-8 first, and if invalid, assumes Latin-1
 fix_utf8 <- function(x) {
-  if (!is.character(x)) return(x) # don't do anything for non-character columns
   bad <- !validEnc(x) | is.na(iconv(x, "UTF-8", "UTF-8")) # get vector of whether utf-8 encoding works for the string
   x[bad] <- iconv(x[bad], from = "latin1", to = "UTF-8") # For just the flagged entries, reinterpret the raw bytes as Latin-1 and convert to utf-8
   enc2utf8(x) # tag every string as declared-UTF-8
@@ -87,14 +88,13 @@ fix_utf8 <- function(x) {
 # Drop columns we don't need
 drop_cols <- c("description", "access_level", "PMID", "country_name",
                "location_method", "location_notes", "time_method", "time_notes")
-prevalence_tbl <- prevalence_tbl[, !(names(prevalence_tbl) %in% drop_cols)]
 
-prevalence_tbl[] <- lapply(prevalence_tbl, fix_utf8)
+prevalence_tbl <- prevalence_tbl |>
+  select(-all_of(drop_cols)) |>
+  mutate(across(where(is.character), fix_utf8))
 
 write_parquet(prevalence_tbl, file.path(output_dir, "prevalence_per_survey.parquet"))
 ```
-
-I have confirmed that as compared with endpointsv2 we do get all the columns we need in this new parquet!
 
 Still todo:
 
