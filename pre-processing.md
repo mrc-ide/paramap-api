@@ -4,7 +4,7 @@ Most of the work and logic is actually done by the two packages STAVE and varian
 
 Open e.g. an R REPL.
 
-First, install the STAVE, variantstring, and arrow packages.
+First, install the packages.
 
 ```R
 # load the packages
@@ -16,18 +16,13 @@ library(variantstring)
 current_stave_release <- "2026.03.17"
 data_root_dir <- "/home/dmears/projects/mrc-ide/PARAmap/paramap-api/data"
 input_dir <- file.path(data_root_dir, "input", "stave", current_stave_release)
-output_dir <-  file.path(data_root_dir, "stave", current_stave_release)
+output_dir <- file.path(data_root_dir, "stave", current_stave_release)
 
-# Read the WHO target markers csv and construct a list of
-# single-locus variantstrings for the targets.
-target_markers <- read.csv(file.path(input_dir, "WHO_target_markers.csv"), comment.char = "#")
-WHO_variants <- target_markers |>
-  pivot_longer(cols = c(ref_aa, alt_aa), names_to = "allele_type", values_to = "aa") |>
-  mutate(variant_string = sprintf("%s:%s:%s", vs_gene, position, aa)) |>
-  pull(variant_string)
-# Validate WHO variants are valid variantstrings
-check_variant_string(WHO_variants)
-
+# Read the custom list of variants of interest.
+variants_of_interest <- read.csv(file.path(input_dir, "variants_of_interest.csv"), comment.char = "#")
+variants <- variants_of_interest$variant_string
+# Validate variants of interest are valid variantstrings
+check_variant_string(variants)
 
 # Extract the STAVE data from the .rds file.
 stave_obj <- readRDS(file.path(input_dir, "stave_data_2026.03.17.rds"))
@@ -36,10 +31,15 @@ stave_obj <- readRDS(file.path(input_dir, "stave_data_2026.03.17.rds"))
 # from the original stave_obj, since prevalence calculations of target markers
 # depend on non-target markers.
 # But we can still at least skip calculating and storing prevalence for non-target markers.
-stave_variants <- stave_obj$get_variants()
 
-# Get variants in common: only WHO target variants are in scope.
-variants <- intersect(WHO_variants, stave_variants)
+# Validate that all variants are actually present in the STAVE data
+missing_variants <- setdiff(variants, stave_obj$get_variants())
+if (length(missing_variants) > 0) {
+  stop(sprintf(
+    "The following variants were not found in the STAVE data: %s",
+    paste(missing_variants, collapse = ", ")
+  ))
+}
 
 # Iterate over each in-scope variant, calculate imputed prevalence per survey
 # (only surveys with a non-zero denominator), and combine into one tibble.
@@ -50,19 +50,19 @@ prevalence_tbl <- variants |>
   }) |>
   bind_rows()
 
-# Parse gene/locus/aa from each variant string using variantstring's own parser.
-# Since `variants` comes from get_variants(), the variant strings are guaranteed to be single-locus,
-# that is, to have only a single value between each colon.
-# If they aren't, `variant_to_long` will unpack the strings into multiple variants, and
+# Parse gene/locus/amino-acid from each variant string using variantstring's own parser.
+# We validate that all variant strings define a single variant.
+# If they do, they have only a single value between each colon.
+# If they don't, `variant_to_long` will unpack the strings into multiple variants, and
 # we'll catch this and abort.
 
-parsed_list <- variant_to_long(prevalence_tbl$variant)  # list of data.frames, one per input string
+parsed_list <- variant_to_long(prevalence_tbl$variant)  # one data.frame per variant
 
 n_rows <- vapply(parsed_list, nrow, integer(1))
 if (any(n_rows != 1)) {
   bad <- prevalence_tbl$variant[n_rows != 1]
   stop(sprintf(
-    "Expected each variant to parse to exactly 1 row via variant_to_long(), but got unexpected row counts for: %s. The variant string is probably not single-locus. You may have called get_variants(report_haplo=TRUE)",
+    "Expected each variant to parse to exactly 1 row via variant_to_long(), but got unexpected row counts for: %s. The variant string might not be single-locus.",
     paste(unique(bad), collapse = ", ")
   ))
 }
