@@ -1,0 +1,56 @@
+# See README for how to update this file - do not edit manually.
+# Target drug-resistance codon positions for extraction.
+# Source: WHO compendium v1.0 (Dec 2025), 'Individual loci' sheet of target_markers.xlsx.
+# vs_gene = the variantstring gene token used when encoding variant strings.
+vs_gene,gene,position,ref_aa,alt_aa,classification,standalone,drugs
+crt,Pfcrt,72,C,S,Candidate,No,"Chloroquine, Amodiaquine"
+crt,Pfcrt,74,M,I,Candidate,No,Chloroquine
+crt,Pfcrt,75,N,E,Candidate,No,Chloroquine
+crt,Pfcrt,76,K,T,Validated,Yes,"Chloroquine, Amodiaquine"
+crt,Pfcrt,93,T,S,Validated,Yes,Piperaquine
+crt,Pfcrt,97,H,Y,Validated,Yes,Piperaquine
+crt,Pfcrt,145,F,I,Validated,Yes,Piperaquine
+crt,Pfcrt,218,I,F,Validated,Yes,Piperaquine
+crt,Pfcrt,220,A,S,Candidate,No,"Chloroquine, Amodiaquine"
+crt,Pfcrt,271,Q,E,Candidate,No,Chloroquine
+crt,Pfcrt,326,N,D,Candidate,No,"Chloroquine, Amodiaquine"
+crt,Pfcrt,326,N,S,Candidate,No,Chloroquine
+crt,Pfcrt,343,M,L,Candidate,Yes,Piperaquine
+crt,Pfcrt,350,C,R,Validated,Yes,Piperaquine
+crt,Pfcrt,353,G,V,Candidate,Yes,Piperaquine
+crt,Pfcrt,356,I,L,Candidate,No,"Chloroquine, Amodiaquine"
+crt,Pfcrt,356,I,T,Candidate,No,Chloroquine
+crt,Pfcrt,371,R,I,Candidate,No,Chloroquine
+cytb,Pfcytb,268,Y,S,Validated,Yes,Atovaquone
+dhfr,Pfdhfr,51,N,I,Validated,No,Sulfadoxine-pyrimethamine
+dhfr,Pfdhfr,59,C,R,Validated,No,Sulfadoxine-pyrimethamine
+dhfr,Pfdhfr,108,S,N,Validated,Yes,Sulfadoxine-pyrimethamine
+dhps,Pfdhps,431,I,V,Validated,No,Sulfadoxine-pyrimethamine
+dhps,Pfdhps,436,S,A,Validated,No,Sulfadoxine-pyrimethamine
+dhps,Pfdhps,437,A,G,Validated,No,Sulfadoxine-pyrimethamine
+dhps,Pfdhps,540,K,E,Validated,No,Sulfadoxine-pyrimethamine
+dhps,Pfdhps,581,A,G,Validated,No,Sulfadoxine-pyrimethamine
+dhps,Pfdhps,613,A,S,Validated,No,Sulfadoxine-pyrimethamine
+dhps,Pfdhps,613,A,T,Validated,No,Sulfadoxine-pyrimethamine
+k13,Pfk13,252,E,Q,Candidate,Yes,Artemisinin
+k13,Pfk13,441,P,L,Candidate,Yes,Artemisinin
+k13,Pfk13,446,F,I,Validated,Yes,Artemisinin
+k13,Pfk13,458,N,Y,Validated,Yes,Artemisinin
+k13,Pfk13,469,C,F,Candidate,Yes,Artemisinin
+k13,Pfk13,469,C,Y,Validated,Yes,Artemisinin
+k13,Pfk13,476,M,I,Validated,Yes,Artemisinin
+k13,Pfk13,493,Y,H,Validated,Yes,Artemisinin
+k13,Pfk13,533,G,S,Validated,Yes,Artemisinin
+k13,Pfk13,537,N,I,Candidate,Yes,Artemisinin
+k13,Pfk13,538,G,V,Candidate,Yes,Artemisinin
+k13,Pfk13,539,R,T,Validated,Yes,Artemisinin
+k13,Pfk13,543,I,T,Validated,Yes,Artemisinin
+k13,Pfk13,553,P,L,Validated,Yes,Artemisinin
+k13,Pfk13,561,R,H,Validated,Yes,Artemisinin
+k13,Pfk13,568,V,G,Candidate,Yes,Artemisinin
+k13,Pfk13,574,P,L,Validated,Yes,Artemisinin
+k13,Pfk13,580,C,Y,Validated,Yes,Artemisinin
+k13,Pfk13,622,R,I,Validated,Yes,Artemisinin
+k13,Pfk13,675,A,V,Validated,Yes,Artemisinin
+k13,Pfk13,724,A,E,Manual,Yes,Artemisinin
+mdr1,Pfmdr1,86,N,Y,Validated,Yes,"Chloroquine, Amodiaquine"
