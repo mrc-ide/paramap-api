@@ -1,25 +1,26 @@
-If you have a .rds file containing a STAVE object, here is how you can convert the three tables that object contains into an expanded version of the studies table, with one row per survey per variant (about 253,000 rows at time of writing).
+# Converts an .rds file containing a STAVE object of 3 tables (studies, surveys, counts)
+# into an expanded version of the studies table, having one row per survey per variant,
+# which is saved in parquet format.
+# This results in a table of about 253,000 rows at time of writing.
+# Most of the work and logic is done by the two packages STAVE and variantstring,
+# particularly STAVE's `$get_prevalence` function.
 
-Most of the work and logic is actually done by the two packages STAVE and variantstring, particularly STAVE's `$get_prevalence` function.
-
-Open e.g. an R REPL.
-
-First, install the packages.
-
-```R
-# load the packages
 library(arrow)
 library(dplyr)
 library(tidyr)
 library(STAVE)
 library(variantstring)
-current_stave_release <- "2026.03.17"
-data_root_dir <- "/home/dmears/projects/mrc-ide/PARAmap/paramap-api/data"
-input_dir <- file.path(data_root_dir, "input", "stave", current_stave_release)
-output_dir <- file.path(data_root_dir, "stave", current_stave_release)
+library(here)
 
-# Extract the STAVE data from the .rds file.
-stave_obj <- readRDS(file.path(input_dir, "stave_data_2026.03.17.rds"))
+current_stave_release <- "2026.03.17"
+if (current_stave_release == "") {
+  stop("Please set the current_stave_release variable to the target STAVE release version, e.g. '2026.03.17'.")
+}
+
+input_dir <- here("scripts", "input", "stave", current_stave_release)
+output_dir <- here("data", "stave", current_stave_release)
+
+stave_obj <- readRDS(file.path(input_dir, "stave_data.rds"))
 
 variants <- stave_obj$get_variants()
 
@@ -42,7 +43,8 @@ n_rows <- vapply(parsed_list, nrow, integer(1))
 if (any(n_rows != 1)) {
   bad <- prevalence_tbl$variant[n_rows != 1]
   stop(sprintf(
-    "Expected each variant to parse to exactly 1 row via variant_to_long(), but got unexpected row counts for: %s. The variant string might not be single-locus. Did you call $get_variants(report_haplo=TRUE)?",
+    "Expected each variant to parse to exactly 1 row via variant_to_long(), but got unexpected row counts for: %s.
+    The variant string might not be single-locus. Did you call $get_variants(report_haplo=TRUE)?",
     paste(unique(bad), collapse = ", ")
   ))
 }
@@ -56,8 +58,6 @@ prevalence_tbl <- prevalence_tbl |>
   )
 
 # Because of encoding errors in paper titles, we need to force conversion to UTF-8.
-# (The error (from DuckDB) was: Invalid Input Error: Invalid string encoding found in Parquet file: value "Temporal Trends in Artemisinin Partial Resistance and Other Antimalarial Drug Mutations in Plasmodium falciparum from Kagera Region, Northwestern Tanzania, 2021\xD02023" is not valid UTF8!)
-
 # This function tries UTF-8 first, and if invalid, assumes Latin-1
 fix_utf8 <- function(x) {
   bad <- !validEnc(x) | is.na(iconv(x, "UTF-8", "UTF-8")) # get vector of whether utf-8 encoding works for the string
@@ -74,9 +74,3 @@ prevalence_tbl <- prevalence_tbl |>
   mutate(across(where(is.character), fix_utf8))
 
 write_parquet(prevalence_tbl, file.path(output_dir, "prevalence_per_survey.parquet"))
-```
-
-Still todo:
-
-3) lat, lng -> admin1, admin0 (via grout - using shapefiles). Probably best to map surveys rather than the 300,000-odd rows in the prevalence_per_survey table.
-4) Do any nice index-like features, e.g. sorting or 'partitioning' - especially if table is very large!
