@@ -1,4 +1,4 @@
-If you have a .rds file containing a STAVE object, here is how you can convert the three tables that object contains into an expanded version of the studies table, with one row per survey per variant (101,619 rows at time of writing).
+If you have a .rds file containing a STAVE object, here is how you can convert the three tables that object contains into an expanded version of the studies table, with one row per survey per variant (about 253,000 rows at time of writing).
 
 Most of the work and logic is actually done by the two packages STAVE and variantstring, particularly STAVE's `$get_prevalence` function.
 
@@ -18,30 +18,12 @@ data_root_dir <- "/home/dmears/projects/mrc-ide/PARAmap/paramap-api/data"
 input_dir <- file.path(data_root_dir, "input", "stave", current_stave_release)
 output_dir <- file.path(data_root_dir, "stave", current_stave_release)
 
-# Read the custom list of variants of interest.
-variants_of_interest <- read.csv(file.path(input_dir, "variants_of_interest.csv"), comment.char = "#")
-variants <- variants_of_interest$variant_string
-# Validate variants of interest are valid variantstrings
-check_variant_string(variants)
-
 # Extract the STAVE data from the .rds file.
 stave_obj <- readRDS(file.path(input_dir, "stave_data_2026.03.17.rds"))
 
-# Prevalence must be calculated without any non-target markers having been dropped
-# from the original stave_obj, since prevalence calculations of target markers
-# depend on non-target markers.
-# But we can still at least skip calculating and storing prevalence for non-target markers.
+variants <- stave_obj$get_variants()
 
-# Validate that all variants are actually present in the STAVE data
-missing_variants <- setdiff(variants, stave_obj$get_variants())
-if (length(missing_variants) > 0) {
-  stop(sprintf(
-    "The following variants were not found in the STAVE data: %s",
-    paste(missing_variants, collapse = ", ")
-  ))
-}
-
-# Iterate over each in-scope variant, calculate imputed prevalence per survey
+# For each variant, calculate imputed prevalence per survey
 # (only surveys with a non-zero denominator), and combine into one tibble.
 prevalence_tbl <- variants |>
   lapply(function(v) {
@@ -55,14 +37,12 @@ prevalence_tbl <- variants |>
 # If they do, they have only a single value between each colon.
 # If they don't, `variant_to_long` will unpack the strings into multiple variants, and
 # we'll catch this and abort.
-
 parsed_list <- variant_to_long(prevalence_tbl$variant)  # one data.frame per variant
-
 n_rows <- vapply(parsed_list, nrow, integer(1))
 if (any(n_rows != 1)) {
   bad <- prevalence_tbl$variant[n_rows != 1]
   stop(sprintf(
-    "Expected each variant to parse to exactly 1 row via variant_to_long(), but got unexpected row counts for: %s. The variant string might not be single-locus.",
+    "Expected each variant to parse to exactly 1 row via variant_to_long(), but got unexpected row counts for: %s. The variant string might not be single-locus. Did you call $get_variants(report_haplo=TRUE)?",
     paste(unique(bad), collapse = ", ")
   ))
 }
