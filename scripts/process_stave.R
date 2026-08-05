@@ -40,23 +40,24 @@ prevalence_tbl <- variants |>
 # If they do, they have only a single value between each colon.
 # If they don't, `variant_to_long` will unpack the strings into multiple variants, and
 # we'll catch this and abort.
-parsed_list <- variant_to_long(prevalence_tbl$variant)  # one data.frame per variant
+uniq_variants <- unique(prevalence_tbl$variant)
+parsed_list <- variant_to_long(uniq_variants)  # one data.frame per unique variant
 n_rows <- vapply(parsed_list, nrow, integer(1))
 if (any(n_rows != 1)) {
-  bad <- prevalence_tbl$variant[n_rows != 1]
+  bad <- uniq_variants[n_rows != 1]
   stop(sprintf(
-    "Expected each variant to parse to exactly 1 row via variant_to_long(), but got unexpected row counts for: %s.
-    The variant string might not be single-locus. Did you call $get_variants(report_haplo=TRUE)?",
+    "Expected each variant to parse to exactly 1 row via variant_to_long(), but got unexpected row counts for: %s.\n    The variant string might not be single-locus. Did you call $get_variants(report_haplo=TRUE)?",
     paste(unique(bad), collapse = ", ")
   ))
 }
 
-parsed <- bind_rows(parsed_list)
+parsed <- bind_rows(Map(function(df, v) mutate(df, variant = v), parsed_list, uniq_variants))
 
 prevalence_tbl <- prevalence_tbl |>
-  mutate(
-    gene     = parsed$gene,
-    mutation = paste0(parsed$pos, parsed$aa)
+  left_join(
+    parsed |>
+      transmute(variant, gene, mutation = paste0(pos, aa)),
+    by = "variant"
   )
 
 # Because of encoding errors in paper titles, we need to force conversion to UTF-8.
