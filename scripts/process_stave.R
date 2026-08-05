@@ -12,10 +12,12 @@ library(STAVE)
 library(variantstring)
 library(here)
 
-current_stave_release <- "2026.03.17"
-if (current_stave_release == "") {
-  stop("Please set the current_stave_release variable to the target STAVE release version, e.g. '2026.03.17'.")
+args <- commandArgs(trailingOnly = TRUE)
+if (length(args) == 0) {
+  stop("Usage: Rscript process_stave.R <stave_release>\nExample: Rscript process_stave.R 2026.03.17")
 }
+
+current_stave_release <- args[[1]]
 
 input_dir <- here("scripts", "input", "stave", current_stave_release)
 output_dir <- here("data", "stave", current_stave_release)
