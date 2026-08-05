@@ -18,9 +18,12 @@ if (length(args) == 0) {
 }
 
 current_stave_release <- args[[1]]
+output_filename = "survey_data.parquet"
 
 input_dir <- here("scripts", "input", "stave", current_stave_release)
 output_dir <- here("data", "stave", current_stave_release)
+
+dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 
 stave_obj <- readRDS(file.path(input_dir, "stave_data.rds"))
 
@@ -40,18 +43,17 @@ prevalence_tbl <- variants |>
 # If they do, they have only a single value between each colon.
 # If they don't, `variant_to_long` will unpack the strings into multiple variants, and
 # we'll catch this and abort.
-uniq_variants <- unique(prevalence_tbl$variant)
-parsed_list <- variant_to_long(uniq_variants)  # one data.frame per unique variant
+parsed_list <- variant_to_long(variants)  # one data.frame per variant
 n_rows <- vapply(parsed_list, nrow, integer(1))
 if (any(n_rows != 1)) {
-  bad <- uniq_variants[n_rows != 1]
+  bad <- variants[n_rows != 1]
   stop(sprintf(
     "Expected each variant to parse to exactly 1 row via variant_to_long(), but got unexpected row counts for: %s.\n    The variant string might not be single-locus. Did you call $get_variants(report_haplo=TRUE)?",
     paste(unique(bad), collapse = ", ")
   ))
 }
 
-parsed <- bind_rows(Map(function(df, v) mutate(df, variant = v), parsed_list, uniq_variants))
+parsed <- bind_rows(Map(function(df, v) mutate(df, variant = v), parsed_list, variants))
 
 prevalence_tbl <- prevalence_tbl |>
   left_join(
@@ -76,4 +78,6 @@ prevalence_tbl <- prevalence_tbl |>
   select(-all_of(drop_cols)) |>
   mutate(across(where(is.character), fix_utf8))
 
-write_parquet(prevalence_tbl, file.path(output_dir, "prevalence_per_survey.parquet"))
+write_parquet(prevalence_tbl, file.path(output_dir, output_filename))
+
+print(sprintf("Wrote %s with %d rows to %s", output_filename, nrow(prevalence_tbl), output_dir))
