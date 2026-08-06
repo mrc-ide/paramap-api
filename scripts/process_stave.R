@@ -6,6 +6,7 @@
 # particularly STAVE's `$get_prevalence` function.
 
 library(arrow)
+library(cli)
 library(dplyr)
 library(tidyr)
 library(STAVE)
@@ -14,7 +15,10 @@ library(here)
 
 args <- commandArgs(trailingOnly = TRUE)
 if (length(args) == 0) {
-  stop("Usage: Rscript process_stave.R <stave_release>\nExample: Rscript process_stave.R 2026.03.17")
+  cli_abort(c(
+    "Usage: {.code Rscript process_stave.R <stave_release>}",
+    "i" = "Example: {.code Rscript process_stave.R 2026.03.17}"
+  ))
 }
 
 current_stave_release <- args[[1]]
@@ -25,7 +29,12 @@ output_dir <- here("data", "stave", current_stave_release)
 
 dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 
-stave_obj <- readRDS(file.path(input_dir, "stave_data.rds"))
+input_file <- file.path(input_dir, "stave_data.rds")
+if (!file.exists(input_file)) {
+  cli_abort("Input file not found: {.file {input_file}}.")
+}
+
+stave_obj <- readRDS(input_file)
 
 variants <- stave_obj$get_variants()
 
@@ -47,9 +56,10 @@ parsed_list <- variant_to_long(variants)  # one data.frame per variant
 n_rows <- vapply(parsed_list, nrow, integer(1))
 if (any(n_rows != 1)) {
   bad <- variants[n_rows != 1]
-  stop(sprintf(
-    "Expected each variant to parse to exactly 1 row via variant_to_long(), but got unexpected row counts for: %s.\n    The variant string might not be single-locus. Did you call $get_variants(report_haplo=TRUE)?",
-    paste(unique(bad), collapse = ", ")
+  cli_abort(c(
+    "Expected each variant to parse to exactly 1 row via {.fn variant_to_long}, but got unexpected row counts for: {.val {unique(bad)}}.",
+    "x" = "The variant string might not be single-locus.",
+    "i" = "Did you call {.code $get_variants(report_haplo = TRUE)}?"
   ))
 }
 
@@ -80,4 +90,4 @@ prevalence_tbl <- prevalence_tbl |>
 
 write_parquet(prevalence_tbl, file.path(output_dir, output_filename))
 
-print(sprintf("Wrote %s with %d rows to %s", output_filename, nrow(prevalence_tbl), output_dir))
+cli_inform(c("v" = "Wrote {.file {output_filename}} with {nrow(prevalence_tbl)} rows to {.path {output_dir}}."))
