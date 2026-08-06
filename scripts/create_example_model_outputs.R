@@ -74,8 +74,8 @@ if (any(n_rows != 1)) {
   ))
 }
 
-parsed_variants <- bind_rows(Map(function(df, v) mutate(df, variant_string = v), parsed_list, variants)) |>
-  transmute(variant_string, gene, mutation = paste0(pos, aa))
+parsed_variants <- bind_rows(Map(function(df, v) mutate(df, variant = v), parsed_list, variants)) |>
+  transmute(variant, gene, mutation = paste0(pos, aa))
 
 fetch_json <- function(url) {
   txt <- tryCatch(readLines(url, warn = FALSE), error = function(e) NULL)
@@ -142,7 +142,7 @@ make_variant_months <- function(variant_values) {
       end_date <- as.Date(sprintf("%04d-%02d-01", start_year, min(12, start_month + sample(1:6, 1))))
     }
     months <- seq.Date(start_date, end_date, by = "month")
-    tibble(variant_string = v, time = months)
+    tibble(variant = v, time = months)
   })
 }
 
@@ -151,12 +151,12 @@ variant_months <- make_variant_months(variants)
 build_level_table <- function(level, regions_tbl) {
   base <- tidyr::crossing(
     region_id = regions_tbl$region_id,
-    variant_string = variants
+    variant = variants
   ) |>
-    # Each variant_string is duplicated on both sides (once per region on the left,
+    # Each variant is duplicated on both sides (once per region on the left,
     # once per month on the right), so this fan-out join is intentional.
-    left_join(variant_months, by = "variant_string", relationship = "many-to-many") |>
-    left_join(parsed_variants, by = "variant_string")
+    left_join(variant_months, by = "variant", relationship = "many-to-many") |>
+    left_join(parsed_variants, by = "variant")
 
   n <- nrow(base)
 
@@ -183,7 +183,7 @@ build_level_table <- function(level, regions_tbl) {
     ) |>
     mutate(across(starts_with("exceedance_"), ~pmin(1, pmax(0, .x)))) |>
     select(
-      variant_string,
+      variant,
       gene,
       mutation,
       region_id,
