@@ -86,8 +86,13 @@ drop_cols <- c("description", "access_level", "PMID", "country_name",
 
 prevalence_tbl <- prevalence_tbl |>
   select(-all_of(drop_cols)) |>
+  rename(lat = latitude, lng = longitude) |>
+  mutate(lat = round(lat, 4), lng = round(lng, 4)) |> # Drop <10m precision
   mutate(across(where(is.character), fix_utf8))
 
 write_parquet(prevalence_tbl, file.path(output_dir, output_filename))
 
 cli_inform(c("v" = "Wrote {.file {output_filename}} with {nrow(prevalence_tbl)} rows to {.path {output_dir}}."))
+
+# TODO: consider sorting the table by whatever the most common/costly index is
+# e.g. sort by gene then by mutation, or sort by date, or sort by region.
