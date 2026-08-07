@@ -16,6 +16,7 @@
     "docker-run": "docker run -e PORT=3000 -p 3000:3000 paramap-api"
   },
   "dependencies": {
+    "@duckdb/node-api": "^1.5.5-r.2",
     "dotenv": "^17.4.2",
     "express": "^5.2.1"
   },

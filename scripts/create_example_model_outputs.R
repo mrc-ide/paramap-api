@@ -142,7 +142,7 @@ make_variant_months <- function(variant_values) {
       end_date <- as.Date(sprintf("%04d-%02d-01", start_year, min(12, start_month + sample(1:6, 1))))
     }
     months <- seq.Date(start_date, end_date, by = "month")
-    tibble(variant = v, time = months)
+    tibble(variant = v, date = months)
   })
 }
 
@@ -178,7 +178,7 @@ build_level_table <- function(level, regions_tbl) {
       exceedance_5 = 1 - pnorm(0.05, mean = mean, sd = SD),
       exceedance_10 = 1 - pnorm(0.10, mean = mean, sd = SD),
       no_of_informing_surveys = sample.int(35, n(), replace = TRUE) - 1L,
-      nearest_survey_by_time = sample(survey_ids, n(), replace = TRUE),
+      nearest_survey_by_date = sample(survey_ids, n(), replace = TRUE),
       admin_level = level
     ) |>
     mutate(across(starts_with("exceedance_"), ~pmin(1, pmax(0, .x)))) |>
@@ -187,7 +187,7 @@ build_level_table <- function(level, regions_tbl) {
       gene,
       mutation,
       region_id,
-      time,
+      date,
       mean,
       median,
       SD,
@@ -198,7 +198,7 @@ build_level_table <- function(level, regions_tbl) {
       exceedance_5,
       exceedance_10,
       no_of_informing_surveys,
-      nearest_survey_by_time
+      nearest_survey_by_date
     )
 
   write_parquet(out, file.path(output_dir, sprintf("admin%d.parquet", level)))
