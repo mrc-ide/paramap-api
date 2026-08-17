@@ -6,13 +6,9 @@ import { errorHandler } from './middlewares/errorHandler.ts';
 
 // NB: date range will vary with the marker, so maybe these date ranges needn't be in metadata... why were they there anyway?
 
-// TODO: versioning!
 const latestModelVersion = "2026.05.08";
-const { default: modelMetadata } = await import(`../data/model/${latestModelVersion}/metadata.json`, { with: { type: "json" } });
-const dataVersion = modelMetadata.data_release;
-const admin0ModelOutputsParquet = `data/model/${latestModelVersion}/admin0.parquet`;
-const admin1ModelOutputsParquet = `data/model/${latestModelVersion}/admin1.parquet`;
-const admin2ModelOutputsParquet = `data/model/${latestModelVersion}/admin2.parquet`;
+
+const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
 // Request grout to get bounding boxes for admin0.
 // TODO: fall back when grout is down
@@ -23,11 +19,15 @@ const admin0RegionMetadata = await fetch(groutMetadata).then(res => res.json()) 
   bounds: { min: { lat: number, lng: number }, max: { lat: number, lng: number } },
 }[];
 
-const staveDirs = await readdir("data/stave", { withFileTypes: true });
-const directories = staveDirs
+const staveFiles = await readdir("data/stave", { withFileTypes: true });
+const dataVersions = staveFiles
   .filter(entry => entry.isDirectory())
   .map(entry => entry.name);
-const dataVersions = directories;
+
+const modelFiles = await readdir("data/model", { withFileTypes: true });
+const modelVersions = modelFiles
+  .filter(entry => entry.isDirectory())
+  .map(entry => entry.name);
 
 // TODO: pre-calculate this from the in-scope countries, so it depends on model.
 const globalBounds = {
@@ -48,22 +48,8 @@ const instance = await DuckDBInstance.create(':memory:', {
 });
 const connection = await instance.connect();
 
-// Get unique genetic variants and their associated genes and mutations.
-// All from the model outputs rectangle.
-const uniqueVariants = await connection.runAndReadAll(`
-  SELECT 
-    ANY_VALUE(gene) AS gene,
-    ANY_VALUE(mutation) AS mutation,
-    variant,
-    STRFTIME(MIN("date"), '%Y-%m-%d') AS min_date,
-    STRFTIME(MAX("date"), '%Y-%m-%d') AS max_date
-  FROM '${admin0ModelOutputsParquet}'
-  GROUP BY variant
-`);
-
 // Noting an assumption: the date range per variant will be the same across all admin levels.
 
-// Group the unique variants by gene, so that we can return a list of mutations for each gene in the metadata endpoint.
 interface Mutation {
   mutation: string;
   date_range: {
@@ -71,27 +57,6 @@ interface Mutation {
     end: string;
   };
 }
-
-const mutationsByGene = uniqueVariants.getRowObjects().reduce((acc, row) => {
-  const gene = row.gene as string;
-  const mutationObj = {
-    mutation: row.mutation,
-    date_range: {
-      start: row.min_date,
-      end: row.max_date,
-    },
-  } as Mutation;
-  const existingGene = acc.find(g => g.gene === gene);
-  if (existingGene) {
-    existingGene.mutations.push(mutationObj);
-  } else {
-    acc.push({
-      gene,
-      mutations: [mutationObj],
-    });
-  }
-  return acc;
-}, [] as { gene: string, mutations: Mutation[] }[]);
 
 
 // On creating with in-memory database: https://duckdb.org/docs/current/clients/node_neo/overview#create-instance
@@ -106,20 +71,60 @@ const mutationsByGene = uniqueVariants.getRowObjects().reduce((acc, row) => {
 
 const app: Express = express();
 
-const modelReleases = [latestModelVersion]; // todo: programatically find releases from the data/model directory
-
+// Can be called with or without a model_release parameter.
+// If no model_release parameter, defaults to latest.
 app.get('/metadata', async (req: Request, res: Response) => {
-  const modelRelease = req.query['model_release'];
+  const modelVersion = req.query['model_release'] ?? latestModelVersion;
 
-  if (modelRelease && !modelReleases.includes(modelRelease as string)) {
-    res.status(400).send({ error: `Invalid model release requested: ${modelRelease}` });
+  // Security: Validate that the above is a filepath within the expected data directory,
+  // by comparing it against a list of the actual prevalence data releases in the data/model directory.
+  if (!modelVersions.includes(modelVersion as string)) {
+    res.status(400).send({ error: `Invalid model release: ${modelVersion}` });
     return;
   }
 
+  // Get unique genetic variants and their associated genes and mutations.
+  // All from the model outputs rectangle, using the latest model version.
+  const uniqueVariants = await connection.runAndReadAll(`
+    SELECT
+      ANY_VALUE(gene) AS gene,
+      ANY_VALUE(mutation) AS mutation,
+      variant,
+      STRFTIME(MIN("date"), '%Y-%m-%d') AS min_date,
+      STRFTIME(MAX("date"), '%Y-%m-%d') AS max_date
+    FROM 'data/model/${modelVersion}/admin0.parquet'
+    GROUP BY variant
+  `);
+
+  // Group the unique variants by gene, so that we can return a list of mutations for each gene in the metadata endpoint.
+  const mutationsByGene = uniqueVariants.getRowObjects().reduce((acc, row) => {
+    const gene = row.gene as string;
+    const mutationObj = {
+      mutation: row.mutation,
+      date_range: {
+        start: row.min_date,
+        end: row.max_date,
+      },
+    } as Mutation;
+    const existingGene = acc.find(g => g.gene === gene);
+    if (existingGene) {
+      existingGene.mutations.push(mutationObj);
+    } else {
+      acc.push({
+        gene,
+        mutations: [mutationObj],
+      });
+    }
+    return acc;
+  }, [] as { gene: string, mutations: Mutation[] }[]);
+
+  const { default: modelMetadata } = await import(`../data/model/${modelVersion}/metadata.json`, { with: { type: "json" } });
+  const dataVersion = modelMetadata.data_release;
+
   res.send({
-    model_releases: modelReleases,
+    model_releases: modelVersions,
     prevalences: {
-      version: latestModelVersion,
+      version: modelVersion,
       data_release: dataVersion,
       variants: mutationsByGene,
     },
@@ -165,7 +170,7 @@ app.get('/surveys', async (req: Request, res: Response) => {
   }
 
   ["date_from", "date_to"].forEach(param => {
-    if (queryParams[param] && !/^\d{4}-\d{2}-\d{2}$/.test(queryParams[param]!)) {
+    if (queryParams[param] && !dateRegex.test(queryParams[param]!)) {
       res.status(400).send({ error: `Invalid date format for parameter '${param}'. Expected YYYY-MM-DD.` });
       return;
     }
@@ -206,10 +211,8 @@ app.get('/surveys', async (req: Request, res: Response) => {
     return;
   }
 
-
   const columnsInData = await connection.runAndReadAll(`SELECT * FROM '${surveyDataParquet}' LIMIT 1`);
   const availableColumns = columnsInData.columnNames(); // Conceivably will vary by data release if schema changes
-
 
   if (!properties.every(p => requestableSurveyProperties.includes(p) && availableColumns.includes(p))) {
     const invalid = properties.find(p => !requestableSurveyProperties.includes(p) || !availableColumns.includes(p));
@@ -240,14 +243,12 @@ app.get('/surveys', async (req: Request, res: Response) => {
       return; 
     }
     const column = ["date_from", "date_to"].includes(param) ? "collection_day" : param;
-    const matcher = param === "date_from" ? ">=" : param === "date_to" ? "<=" : "=";
+    const equality = param === "date_from" ? ">=" : param === "date_to" ? "<=" : "=";
 
-    whereClauses.push(`${tableName}.${column} ${matcher} $${param}`);
+    whereClauses.push(`${tableName}.${column} ${equality} $${param}`);
   });
 
-  const columns = (properties.length === 0)
-    ? "*"
-    : properties.map(p => `c.${p}`).join(", ");
+  const columns = properties.map(p => `c.${p}`).join(", ");
   const statement = await connection.prepare(
     `SELECT ${columns} FROM '${surveyDataParquet}' ${tableName} WHERE ${whereClauses.join(' AND ')}`
   )
