@@ -106,7 +106,7 @@ ssa_iso <- c(
 
 admin0_regions <- admin0_df |>
   filter(id %in% ssa_iso) |>
-  transmute(region_id = id)
+  transmute(admin0 = id)
 
 if (nrow(admin0_regions) == 0) {
   cli_abort("No sub-Saharan African admin0 regions found from grout.")
@@ -117,13 +117,20 @@ fetch_country_level <- function(level, iso) {
   resp <- fetch_json(url)
   dat <- extract_data(resp, url)
   if (!is.data.frame(dat) || nrow(dat) == 0) {
-    return(tibble(region_id = character(0)))
+    return(tibble())
   }
-  tibble(region_id = dat$id)
+  if (level == 1) {
+    return(tibble(admin0 = iso, admin1 = dat$id))
+  }
+  if (level == 2) {
+    admin1_from_admin2 <- sub("_[0-9]+$", "", dat$id)
+    return(tibble(admin0 = iso, admin1 = admin1_from_admin2, admin2 = dat$id))
+  }
+  cli_abort("Unsupported admin level: {level}.")
 }
 
-admin1_regions <- map_dfr(ssa_iso, ~fetch_country_level(1, .x)) |> distinct(region_id)
-admin2_regions <- map_dfr(ssa_iso, ~fetch_country_level(2, .x)) |> distinct(region_id)
+admin1_regions <- map_dfr(ssa_iso, ~fetch_country_level(1, .x)) |> distinct(admin0, admin1)
+admin2_regions <- map_dfr(ssa_iso, ~fetch_country_level(2, .x)) |> distinct(admin0, admin1, admin2)
 
 if (nrow(admin1_regions) == 0 || nrow(admin2_regions) == 0) {
   cli_abort("Failed to collect admin1/admin2 regions from grout endpoint.")
@@ -131,7 +138,7 @@ if (nrow(admin1_regions) == 0 || nrow(admin2_regions) == 0) {
 
 make_variant_months <- function(variant_values) {
   purrr::map_dfr(variant_values, function(v) {
-    start_year <- sample(1990:2029, size = 1, prob = dnorm(1990:2029, mean = 2020, sd = 9))
+    start_year <- sample(1970:2029, size = 1, prob = dnorm(1970:2029, mean = 2005, sd = 9))
     end_year <- sample(start_year:2030, size = 1, prob = dnorm(start_year:2030, mean = 2026, sd = 4))
     start_month <- sample(1:12, size = 1)
     end_month <- sample(1:12, size = 1)
@@ -150,7 +157,7 @@ variant_months <- make_variant_months(variants)
 
 build_level_table <- function(level, regions_tbl) {
   base <- tidyr::crossing(
-    region_id = regions_tbl$region_id,
+    regions_tbl,
     variant = variants
   ) |>
     # Each variant is duplicated on both sides (once per region on the left,
@@ -186,7 +193,7 @@ build_level_table <- function(level, regions_tbl) {
       variant,
       gene,
       mutation,
-      region_id,
+      starts_with("admin"),
       date,
       mean,
       median,
