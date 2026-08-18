@@ -16,10 +16,11 @@ const adminLevels = ["0", "1", "2"];
 // TODO: fall back when grout is down
 // TODO: use paramap dataset rather than gadm41?
 const groutMetadata = `https://mrcdata.dide.ic.ac.uk/grout/region-metadata/gadm41/admin0`;
-const admin0RegionMetadata = await fetch(groutMetadata).then(res => res.json()) as {
+let admin0RegionMetadata: Array<{
   id: string,
   bounds: { min: { lat: number, lng: number }, max: { lat: number, lng: number } },
-}[];
+}> = [];
+await fetch(groutMetadata).then(async res => admin0RegionMetadata = (await res.json()).data);
 
 const staveFiles = await readdir("data/stave", { withFileTypes: true });
 const dataVersions = staveFiles
@@ -257,6 +258,10 @@ app.get('/surveys', async (req: Request, res: Response) => {
     `SELECT ${columns} FROM '${surveyDataParquet}' ${tableName} WHERE ${whereClauses.join(' AND ')}`
   )
   const bindings = selectableParams.reduce((acc, param) => {
+    if (param === "admin0") {
+      // We use lat and lng instead of admin0 in the SQL query
+      return acc
+    }
     acc[param] = queryParams[param] ?? null;
     return acc;
   }, {} as Record<string, string | null>);
