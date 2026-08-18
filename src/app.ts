@@ -3,6 +3,7 @@ import { readdir } from 'fs/promises';
 import { DuckDBInstance, VARCHAR } from '@duckdb/node-api';
 import config from './config/config.ts';
 import { errorHandler } from './middlewares/errorHandler.ts';
+import { requestTimingLogger } from './middlewares/requestTimingLogger.ts';
 
 // NB: date range will vary with the marker, so maybe these date ranges needn't be in metadata... why were they there anyway?
 
@@ -71,6 +72,7 @@ interface Mutation {
 // We can do partial resolution of queries using streaming, see https://duckdb.org/docs/current/clients/node_neo
 
 const app: Express = express();
+app.use(requestTimingLogger);
 
 // Can be called with or without a model_release parameter.
 // If no model_release parameter, defaults to latest.
