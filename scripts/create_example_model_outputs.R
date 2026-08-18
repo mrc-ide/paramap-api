@@ -137,7 +137,19 @@ if (nrow(admin1_regions) == 0 || nrow(admin2_regions) == 0) {
 }
 
 make_variant_months <- function(variant_values) {
-  purrr::map_dfr(variant_values, function(v) {
+  # Force a subset of variants to span the full historical range so the
+  # generated example data always includes older start dates in meaningful volume.
+  n_forced <- max(1L, ceiling(length(variant_values) / 4))
+  forced_variants <- variant_values[seq_len(n_forced)]
+
+  forced_extremes <- purrr::map_dfr(forced_variants, function(v) {
+    tibble(
+      variant = v,
+      date = seq.Date(as.Date("1970-01-01"), as.Date("2030-12-01"), by = "month")
+    )
+  })
+
+  sampled <- purrr::map_dfr(variant_values, function(v) {
     start_year <- sample(1970:2029, size = 1, prob = dnorm(1970:2029, mean = 2005, sd = 9))
     end_year <- sample(start_year:2030, size = 1, prob = dnorm(start_year:2030, mean = 2026, sd = 4))
     start_month <- sample(1:12, size = 1)
@@ -151,11 +163,13 @@ make_variant_months <- function(variant_values) {
     months <- seq.Date(start_date, end_date, by = "month")
     tibble(variant = v, date = months)
   })
+
+  bind_rows(sampled, forced_extremes) |> distinct(variant, date)
 }
 
 variant_months <- make_variant_months(variants)
 
-build_level_table <- function(level, regions_tbl) {
+build_level_chunk <- function(level, regions_tbl) {
   base <- tidyr::crossing(
     regions_tbl,
     variant = variants
@@ -207,18 +221,74 @@ build_level_table <- function(level, regions_tbl) {
       no_of_informing_surveys,
       nearest_survey_by_date
     )
-
-  write_parquet(out, file.path(output_dir, sprintf("admin%d.parquet", level)))
-  out
 }
 
-admin0_out <- build_level_table(0, admin0_regions)
-admin1_out <- build_level_table(1, admin1_regions)
-admin2_out <- build_level_table(2, admin2_regions)
+write_level_table <- function(level, regions_tbl, target_chunk_rows = 500000L) {
+  output_path <- file.path(output_dir, sprintf("admin%d.parquet", level))
+  temporary_path <- paste0(output_path, ".tmp")
+  if (file.exists(temporary_path)) {
+    unlink(temporary_path)
+  }
+
+  # Limit each expanded table to roughly target_chunk_rows before writing it
+  # as one or more row groups to the same Parquet file.
+  regions_per_chunk <- max(1L, floor(target_chunk_rows / nrow(variant_months)))
+  chunk_ids <- ceiling(seq_len(nrow(regions_tbl)) / regions_per_chunk)
+  region_chunks <- split(seq_len(nrow(regions_tbl)), chunk_ids)
+
+  sink <- NULL
+  writer <- NULL
+  total_rows <- 0
+
+  on.exit({
+    if (!is.null(writer)) {
+      writer$Close()
+    }
+    if (!is.null(sink)) {
+      sink$close()
+    }
+    if (file.exists(temporary_path)) {
+      unlink(temporary_path)
+    }
+  }, add = TRUE)
+
+  for (region_indices in region_chunks) {
+    out <- build_level_chunk(level, regions_tbl[region_indices, , drop = FALSE])
+    arrow_out <- arrow_table(out)
+
+    if (is.null(writer)) {
+      sink <- FileOutputStream$create(temporary_path)
+      properties <- ParquetWriterProperties$create(names(out))
+      writer <- ParquetFileWriter$create(
+        arrow_out$schema,
+        sink,
+        properties = properties
+      )
+    }
+
+    writer$WriteTable(arrow_out, chunk_size = min(100000L, nrow(out)))
+    total_rows <- total_rows + nrow(out)
+  }
+
+  writer$Close()
+  writer <- NULL
+  sink$close()
+  sink <- NULL
+
+  if (!file.rename(temporary_path, output_path)) {
+    cli_abort("Failed to move completed output to {.file {output_path}}.")
+  }
+
+  total_rows
+}
+
+admin0_rows <- write_level_table(0, admin0_regions)
+admin1_rows <- write_level_table(1, admin1_regions)
+admin2_rows <- write_level_table(2, admin2_regions)
 
 cli_inform(c(
-  "v" = "Wrote {.file admin0.parquet} with {nrow(admin0_out)} rows.",
-  "v" = "Wrote {.file admin1.parquet} with {nrow(admin1_out)} rows.",
-  "v" = "Wrote {.file admin2.parquet} with {nrow(admin2_out)} rows.",
+  "v" = "Wrote {.file admin0.parquet} with {admin0_rows} rows.",
+  "v" = "Wrote {.file admin1.parquet} with {admin1_rows} rows.",
+  "v" = "Wrote {.file admin2.parquet} with {admin2_rows} rows.",
   "i" = "Output directory: {.path {output_dir}}."
 ))
