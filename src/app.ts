@@ -3,10 +3,10 @@ import { connection } from './queryEngine.ts';
 import config from './config/config.ts';
 import { errorHandler } from './middlewares/errorHandler.ts';
 import { requestTimingLogger } from './middlewares/requestTimingLogger.ts';
-import admin0RegionMetadata from '../data/admin0-region-metadata.json' with { type: "json" };
 import { adminLevels, globalBounds, modelVersions } from './constants.ts';
-import type { Mutation } from './types.ts';
+import type { Mutation, QueryParams } from './types.ts';
 import { validateAdmin0, validateDataRelease, validateDateParams, validateModelRelease } from './utils/validators.ts';
+import { executeParquetQuery } from './utils/queryHelpers.ts';
 
 // TODO: add compression in nginx.
 
@@ -72,31 +72,9 @@ app.get('/metadata', async (req: Request, res: Response) => {
 
 // TODO: tell time columns to be time columns - https://duckdb.org/2024/12/18/duckdb-node-neo-client#binding-values-to-prepared-statements
 
-const requestableSurveyProperties = [
-  "study_label",
-  "contributors",
-  "reference",
-  "reference_year",
-  "survey_id",
-  "site_name",
-  "lat",
-  "lng",
-  "collection_start",
-  "collection_end",
-  "collection_day",
-  "numerator",
-  "denominator",
-  "prevalence",
-  "prevalence_lower",
-  "prevalence_upper",
-  "variant",
-  "gene",
-  "mutation",
-]
-
 app.get('/surveys', async (req: Request, res: Response) => {
   // TODO: type queryParams for this endpoint and validate all params (don't allow unrecognised params)
-  const queryParams = req.query as Record<string, string | undefined>;
+  const queryParams = req.query as QueryParams;
   if (!queryParams.data_release) {
     res.status(400).send({ error: "Missing required query parameter: data_release" });
     return;
@@ -112,102 +90,17 @@ app.get('/surveys', async (req: Request, res: Response) => {
 
   const surveyDataParquet = `data/stave/${dataVersion}/survey_data.parquet`;
 
-  const properties = queryParams.properties?.split(',') ?? [];
-  if (properties.length === 0) {
-    res.status(400).send({ error: "At least one property must be requested." });
+  const result = await executeParquetQuery(queryParams, req.path, surveyDataParquet, res);
+  if (!result) {
     return;
   }
 
-  const columnsInData = await connection.runAndReadAll(`SELECT * FROM '${surveyDataParquet}' LIMIT 1`);
-  const availableColumns = columnsInData.columnNames(); // Conceivably will vary by data release if schema changes
-  const columnTypes = columnsInData.columnTypes();
-  const roundableColumns = availableColumns.filter((_col, index) => {
-    return ["DOUBLE", "FLOAT", "DECIMAL"].includes(String(columnTypes[index]));
-  });
-
-  const invalid = properties.find(p => !requestableSurveyProperties.includes(p) || !availableColumns.includes(p));
-  if (invalid) {
-    res.status(400).send({ error: `Invalid property requested: ${invalid}` });
-    return;
-  }
-
-  const selectableParams = ["admin0", "survey_id", "date_from", "date_to", "gene", "mutation"]
-    .filter(param => !!queryParams[param]);
-  const tableName = "c";
-  const whereClauses = ["1 = 1"]; // Start with a dummy condition to simplify appending AND clauses
-  selectableParams.forEach((param) => {
-    if (param === "admin0") {
-      const iso = queryParams[param]!;
-      const region = admin0RegionMetadata.find(({ id }) => id === iso);
-      if (!region) {
-        res.status(400).send({ error: `ISO code not found: ${iso}` });
-        return;
-      }
-      const bounds = region.bounds;
-
-      whereClauses.push(
-        `${tableName}.lat >= ${bounds.min.lat}`,
-        `${tableName}.lat <= ${bounds.max.lat}`,
-        `${tableName}.lng >= ${bounds.min.lng}`,
-        `${tableName}.lng <= ${bounds.max.lng}`
-      );
-      return; 
-    }
-    const column = ["date_from", "date_to"].includes(param) ? "collection_day" : param;
-    const equality = param === "date_from" ? ">=" : param === "date_to" ? "<=" : "=";
-
-    whereClauses.push(`${tableName}.${column} ${equality} $${param}`);
-  });
-
-  const columns = properties.map((p) => {
-    if (roundableColumns.includes(p)) {
-      // Round to 4 decimal places for numeric columns, to reduce size of response
-      return `ROUND(${tableName}.${p}, 4) AS ${p}`;
-    }
-    return `${tableName}.${p}`;
-  }).join(", ");
-  const statement = await connection.prepare(
-    `SELECT ${columns} FROM '${surveyDataParquet}' ${tableName} WHERE ${whereClauses.join(' AND ')}`
-  )
-  const bindings = selectableParams.reduce((acc, param) => {
-    if (param === "admin0") {
-      // We use lat and lng instead of admin0 in the SQL query
-      return acc
-    }
-    acc[param] = queryParams[param] ?? null;
-    return acc;
-  }, {} as Record<string, string | null>);
-  statement.bind(bindings);
-  const result = await statement.runAndReadAll();
-  const rows = result.getRowObjectsJson();
-
-  res.type("json").send(rows);
+  res.type("json").send(result.getRowObjectsJson());
 });
-
-const requestablePrevalenceProperties = [
-  "variant",
-  "gene",
-  "mutation",
-  "admin0",
-  "admin1",
-  "admin2",
-  "date",
-  "mean",
-  "median",
-  "SD",
-  "lower_95",
-  "upper_95",
-  "exceedance_1",
-  "exceedance_2",
-  "exceedance_5",
-  "exceedance_10",
-  "no_of_informing_surveys",
-  "nearest_survey_by_date" // gives a survey_id
-]
 
 app.get('/prevalences', async (req: Request, res: Response) => {
   // TODO: type queryParams for this endpoint and validate all params (don't allow unrecognised params)
-  const queryParams = req.query as Record<string, string | undefined>;
+  const queryParams = req.query as QueryParams;
 
   if (!queryParams.model_release) {
     res.status(400).send({ error: "Missing required query parameter: model_release" });
@@ -242,63 +135,19 @@ app.get('/prevalences', async (req: Request, res: Response) => {
 
   const prevalencesParquet = `data/model/${modelVersion}/admin${adminLevel}.parquet`;
 
-  const columnsInData = await connection.runAndReadAll(`SELECT * FROM '${prevalencesParquet}' LIMIT 1`);
-  const availableColumns = columnsInData.columnNames(); // Conceivably will vary by model release if schema changes
-  const columnTypes = columnsInData.columnTypes();
-  const roundableColumns = availableColumns.filter((_col, index) => {
-    return ["DOUBLE", "FLOAT", "DECIMAL"].includes(String(columnTypes[index]));
-  });
-
-  adminLevels.forEach((level) => {
+  for (const level of adminLevels) {
     if (queryParams[`admin${level}`] && adminLevel < level) {
-      res.status(400).send({ error: "You cannot request results at a less granular level than that of the containing region." })
+      res.status(400).send({ error: "You cannot request results at a less granular level than that of the containing region." });
+      return;
     }
-  })
+  }
 
-  const properties = queryParams.properties?.split(',').filter(p => !!p) ?? [];
-  if (properties.length === 0) {
-    res.status(400).send({ error: "At least one property must be requested." });
+  const result = await executeParquetQuery(queryParams, req.path, prevalencesParquet, res);
+  if (!result) {
     return;
   }
 
-  const invalid = properties.find(p => !requestablePrevalenceProperties.includes(p) || !availableColumns.includes(p));
-  if (invalid) {
-    res.status(400).send({ error: `Invalid property requested: ${invalid}` });
-    return;
-  }
-
-  const selectableParams = ["admin0", "admin1", "admin2", "gene", "mutation", "date", "date_from", "date_to"]
-    .filter(param => !!queryParams[param]);
-  const tableName = "p";
-  const whereClauses = ["1 = 1"]; // Start with a dummy condition to simplify appending AND clauses
-  selectableParams.forEach((param) => {
-    const column = ["date_from", "date_to"].includes(param) ? "date" : param;
-    const equality = param === "date_from" ? ">=" : param === "date_to" ? "<=" : "=";
-
-    whereClauses.push(`${tableName}.${column} ${equality} $${param}`);
-    return;
-  });
-
-  const columns = properties.map((p) => {
-    if (roundableColumns.includes(p)) {
-      // Round to 4 decimal places for numeric columns, to reduce size of response
-      return `ROUND(${tableName}.${p}, 4) AS ${p}`;
-    }
-    return `${tableName}.${p}`;
-  }).join(", ");
-
-  const statement = await connection.prepare(
-    `SELECT ${columns} FROM '${prevalencesParquet}' ${tableName} WHERE ${whereClauses.join(' AND ')}`
-  )
-  const bindings = selectableParams.reduce((acc, param) => {
-    acc[param] = queryParams[param] ?? null;
-    return acc;
-  }, {} as Record<string, string | null>);
-  statement.bind(bindings);
-  const result = await statement.runAndReadAll();
-  const cols = result.getColumnsObjectJson();
-
-  res.type("json").send(cols);
+  res.type("json").send(result.getColumnsObjectJson());
 });
 
 app.listen(config.port, () => {
