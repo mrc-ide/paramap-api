@@ -4,6 +4,7 @@ import { DuckDBInstance } from '@duckdb/node-api';
 import config from './config/config.ts';
 import { errorHandler } from './middlewares/errorHandler.ts';
 import { requestTimingLogger } from './middlewares/requestTimingLogger.ts';
+import admin0RegionMetadata from '../data/admin0-region-metadata.json' with { type: "json" };
 
 // TODO: add compression in nginx.
 
@@ -11,16 +12,6 @@ const latestModelVersion = "2026.05.08";
 
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 const adminLevels = ["0", "1", "2"];
-
-// Request grout to get bounding boxes for admin0.
-// TODO: fall back when grout is down
-// TODO: use paramap dataset rather than gadm41?
-const groutMetadata = `https://mrcdata.dide.ic.ac.uk/grout/region-metadata/gadm41/admin0`;
-let admin0RegionMetadata: Array<{
-  id: string,
-  bounds: { min: { lat: number, lng: number }, max: { lat: number, lng: number } },
-}> = [];
-await fetch(groutMetadata).then(async res => admin0RegionMetadata = (await res.json()).data);
 
 const staveFiles = await readdir("data/stave", { withFileTypes: true });
 const dataVersions = staveFiles
