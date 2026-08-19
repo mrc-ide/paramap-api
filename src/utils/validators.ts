@@ -1,5 +1,15 @@
 import { type Request, type Response } from 'express';
 import { LATEST_MODEL_VERSION, modelVersions, dataVersions, dateRegex } from '../constants.ts';
+import type { QueryParams } from '../types.ts';
+
+export const validateRequestedProperties = (queryParams: QueryParams, res: Response): string[] | null => {
+  const properties = queryParams.properties?.split(',').filter(p => !!p) ?? [];
+  if (properties.length === 0) {
+    res.status(400).send({ error: "At least one property must be requested." });
+    return null;
+  }
+  return properties;
+};
 
 export const validateModelRelease = (req: Request, res: Response): string | null => {
   const modelVersion = req.query['model_release'] ?? LATEST_MODEL_VERSION;

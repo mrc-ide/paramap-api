@@ -5,3 +5,5 @@ export interface Mutation {
     end: string;
   };
 }
+
+export type QueryParams = Record<string, string | undefined>;
