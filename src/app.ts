@@ -4,8 +4,9 @@ import config from './config/config.ts';
 import { errorHandler } from './middlewares/errorHandler.ts';
 import { requestTimingLogger } from './middlewares/requestTimingLogger.ts';
 import admin0RegionMetadata from '../data/admin0-region-metadata.json' with { type: "json" };
-import { adminLevels, dateRegex, LATEST_MODEL_VERSION, globalBounds, modelVersions, dataVersions } from './utils.ts';
+import { adminLevels, globalBounds, modelVersions } from './constants.ts';
 import type { Mutation } from './types.ts';
+import { validateAdmin0, validateDataRelease, validateDateParams, validateModelRelease } from './utils/validators.ts';
 
 // TODO: add compression in nginx.
 
@@ -31,14 +32,7 @@ app.use(errorHandler);
 // Can be called with or without a model_release parameter.
 // If no model_release parameter, defaults to latest.
 app.get('/metadata', async (req: Request, res: Response) => {
-  const modelVersion = req.query['model_release'] ?? LATEST_MODEL_VERSION;
-
-  // Security: Validate that the above is a filepath within the expected data directory,
-  // by comparing it against a list of the actual prevalence data releases in the data/model directory.
-  if (!modelVersions.includes(modelVersion as string)) {
-    res.status(400).send({ error: `Invalid model release: ${modelVersion}` });
-    return;
-  }
+  const modelVersion = validateModelRelease(req, res);
 
   // Get unique genetic variants and their associated genes and mutations.
   // All from the model outputs rectangle, using the latest model version.
@@ -121,41 +115,15 @@ app.get('/surveys', async (req: Request, res: Response) => {
     return;
   }
 
-  // Security: Validate that the above is a filepath within the expected data directory,
-  // by comparing it against a list of the actual survey data releases in the data/stave directory.
-  if (!dataVersions.includes(queryParams.data_release)) {
-    res.status(400).send({ error: `Invalid data release requested: ${queryParams.data_release}` });
+  const dataVersion = validateDataRelease(req, res);
+  if (!dataVersion) {
     return;
   }
 
-  ["date_from", "date_to"].forEach(param => {
-    if (queryParams[param] && !dateRegex.test(queryParams[param]!)) {
-      res.status(400).send({ error: `Invalid date format for parameter '${param}'. Expected YYYY-MM-DD.` });
-      return;
-    }
-  });
+  validateDateParams(req, res);
+  validateAdmin0(req, res);
 
-  if (queryParams.admin0 && !/^[A-Z]{3}$/.test(queryParams.admin0)) {
-    res.status(400).send({ error: "Invalid ISO code for parameter 'admin0'. Expected a 3-letter uppercase ISO code." });
-    return;
-  }
-
-  if (queryParams.date_from && !queryParams.date_to) {
-    res.status(400).send({ error: "Missing required parameter 'date_to' when 'date_from' is specified." });
-    return;
-  }
-
-  if (queryParams.date_to && !queryParams.date_from) {
-    res.status(400).send({ error: "Missing required parameter 'date_from' when 'date_to' is specified." });
-    return;
-  }
-
-  if (queryParams.date_from && queryParams.date_to && new Date(queryParams.date_from) > new Date(queryParams.date_to)) {
-    res.status(400).send({ error: "'date_from' cannot be later than 'date_to'." });
-    return;
-  }
-
-  const surveyDataParquet = `data/stave/${queryParams.data_release}/survey_data.parquet`;
+  const surveyDataParquet = `data/stave/${dataVersion}/survey_data.parquet`;
 
   const properties = queryParams.properties?.split(',') ?? [];
   if (properties.length === 0) {
@@ -254,51 +222,25 @@ app.get('/prevalences', async (req: Request, res: Response) => {
   // TODO: type queryParams for this endpoint and validate all params (don't allow unrecognised params)
   const queryParams = req.query as Record<string, string | undefined>;
 
-  const modelVersion = queryParams.model_release as string;
-  if (!modelVersion) {
+  if (!queryParams.model_release) {
     res.status(400).send({ error: "Missing required query parameter: model_release" });
     return;
   }
 
-  // Security: Validate that the above is a filepath within the expected data directory,
-  // by comparing it against a list of the actual survey data releases in the data/stave directory.
-  if (!modelVersions.includes(modelVersion)) {
-    res.status(400).send({ error: `Invalid model release requested: ${modelVersion}` });
+  const modelVersion = validateModelRelease(req, res);
+  if (!modelVersion) {
     return;
   }
 
-  ["date", "date_from", "date_to"].forEach(param => {
-    if (queryParams[param] && !dateRegex.test(queryParams[param]!)) {
-      res.status(400).send({ error: `Invalid date format for parameter '${param}'. Expected YYYY-MM-DD.` });
-      return;
-    }
-  });
+  const { date } = validateDateParams(req, res) ?? {};
 
   // Check the date is the first of a month
-  if (queryParams.date && new Date(queryParams.date).getDate() !== 1) {
+  if (date && new Date(date).getDate() !== 1) {
     res.status(400).send({ error: "Invalid `date` parameter. The date must be the first of a month." });
     return;
   }
 
-  if (queryParams.admin0 && !/^[A-Z]{3}$/.test(queryParams.admin0)) {
-    res.status(400).send({ error: "Invalid ISO code for parameter 'admin0'. Expected a 3-letter uppercase ISO code." });
-    return;
-  }
-
-  if (queryParams.date_from && !queryParams.date_to) {
-    res.status(400).send({ error: "Missing required parameter 'date_to' when 'date_from' is specified." });
-    return;
-  }
-
-  if (queryParams.date_to && !queryParams.date_from) {
-    res.status(400).send({ error: "Missing required parameter 'date_from' when 'date_to' is specified." });
-    return;
-  }
-
-  if (queryParams.date_from && queryParams.date_to && new Date(queryParams.date_from) > new Date(queryParams.date_to)) {
-    res.status(400).send({ error: "'date_from' cannot be later than 'date_to'." });
-    return;
-  }
+  validateAdmin0(req, res);
 
   // Client may request results at any of the available levels of granularity.
   const adminLevel = queryParams.admin_level;
