@@ -1,11 +1,11 @@
 import express, { type Express, type Request, type Response } from 'express';
 import { readdir } from 'fs/promises';
-import { DuckDBInstance, VARCHAR } from '@duckdb/node-api';
+import { DuckDBInstance } from '@duckdb/node-api';
 import config from './config/config.ts';
 import { errorHandler } from './middlewares/errorHandler.ts';
 import { requestTimingLogger } from './middlewares/requestTimingLogger.ts';
 
-// NB: date range will vary with the marker, so maybe these date ranges needn't be in metadata... why were they there anyway?
+// TODO: add compression in nginx.
 
 const latestModelVersion = "2026.05.08";
 
@@ -66,9 +66,6 @@ interface Mutation {
 // DuckDB can operate in both persistent mode, where the data is saved to disk, and in in-memory mode, where the entire dataset is stored in the main memory.
 // Both persistent and in-memory databases use spilling to disk to facilitate larger-than-memory workloads (i.e., out-of-core-processing).
 // In in-memory mode, no data is persisted to disk, therefore, all data is lost when the process finishes.
-
-// TODO: use duckdb read-only mode https://duckdb.org/docs/current/connect/concurrency
-// This produces this error: "[Error: Catalog Error: Cannot launch in-memory database in read-only mode!]"
 
 // We can do partial resolution of queries using streaming, see https://duckdb.org/docs/current/clients/node_neo
 
@@ -160,12 +157,6 @@ const requestableSurveyProperties = [
   "mutation",
 ]
 
-
-// WHERE I GOT TO:
-// surveys endpoint kind of works, but I need to test "is it performant when we request large amounts of data."
-// same question for when I build the prevalences endpoint.
-// can duckdb streaming help?
-
 app.get('/surveys', async (req: Request, res: Response) => {
   // TODO: type queryParams for this endpoint and validate all params (don't allow unrecognised params)
   const queryParams = req.query as Record<string, string | undefined>;
@@ -218,6 +209,10 @@ app.get('/surveys', async (req: Request, res: Response) => {
 
   const columnsInData = await connection.runAndReadAll(`SELECT * FROM '${surveyDataParquet}' LIMIT 1`);
   const availableColumns = columnsInData.columnNames(); // Conceivably will vary by data release if schema changes
+  const columnTypes = columnsInData.columnTypes();
+  const roundableColumns = availableColumns.filter((_col, index) => {
+    return ["DOUBLE", "FLOAT", "DECIMAL"].includes(String(columnTypes[index]));
+  });
 
   const invalid = properties.find(p => !requestableSurveyProperties.includes(p) || !availableColumns.includes(p));
   if (invalid) {
@@ -253,7 +248,13 @@ app.get('/surveys', async (req: Request, res: Response) => {
     whereClauses.push(`${tableName}.${column} ${equality} $${param}`);
   });
 
-  const columns = properties.map(p => `${tableName}.${p}`).join(", ");
+  const columns = properties.map((p) => {
+    if (roundableColumns.includes(p)) {
+      // Round to 4 decimal places for numeric columns, to reduce size of response
+      return `ROUND(${tableName}.${p}, 4)`;
+    }
+    return `${tableName}.${p}`;
+  }).join(", ");
   const statement = await connection.prepare(
     `SELECT ${columns} FROM '${surveyDataParquet}' ${tableName} WHERE ${whereClauses.join(' AND ')}`
   )
@@ -265,17 +266,11 @@ app.get('/surveys', async (req: Request, res: Response) => {
     acc[param] = queryParams[param] ?? null;
     return acc;
   }, {} as Record<string, string | null>);
-  statement.bind(bindings, {
-    survey_id: VARCHAR,
-    date_from: VARCHAR,
-    date_to: VARCHAR,
-    gene: VARCHAR,
-    mutation: VARCHAR,
-  });
+  statement.bind(bindings);
   const result = await statement.runAndReadAll();
-  const rows = result.getRowObjectsJson();
+  const rows = result.getColumnsObjectJson();
 
-  res.send(rows);
+  res.type("json").send(rows);
 });
 
 const requestablePrevalenceProperties = [
@@ -364,6 +359,10 @@ app.get('/prevalences', async (req: Request, res: Response) => {
 
   const columnsInData = await connection.runAndReadAll(`SELECT * FROM '${prevalencesParquet}' LIMIT 1`);
   const availableColumns = columnsInData.columnNames(); // Conceivably will vary by model release if schema changes
+  const columnTypes = columnsInData.columnTypes();
+  const roundableColumns = availableColumns.filter((_col, index) => {
+    return ["DOUBLE", "FLOAT", "DECIMAL"].includes(String(columnTypes[index]));
+  });
 
   adminLevels.forEach((level) => {
     if (queryParams[`admin${level}`] && adminLevel < level) {
@@ -395,7 +394,13 @@ app.get('/prevalences', async (req: Request, res: Response) => {
     return;
   });
 
-  const columns = properties.map(p => `${tableName}.${p}`).join(", ");
+  const columns = properties.map((p) => {
+    if (roundableColumns.includes(p)) {
+      // Round to 4 decimal places for numeric columns, to reduce size of response
+      return `ROUND(${tableName}.${p}, 4)`;
+    }
+    return `${tableName}.${p}`;
+  }).join(", ");
 
   const statement = await connection.prepare(
     `SELECT ${columns} FROM '${prevalencesParquet}' ${tableName} WHERE ${whereClauses.join(' AND ')}`
@@ -404,20 +409,11 @@ app.get('/prevalences', async (req: Request, res: Response) => {
     acc[param] = queryParams[param] ?? null;
     return acc;
   }, {} as Record<string, string | null>);
-  statement.bind(bindings, {
-    admin0: VARCHAR,
-    admin1: VARCHAR,
-    admin2: VARCHAR,
-    gene: VARCHAR,
-    mutation: VARCHAR,
-    date: VARCHAR,
-    date_from: VARCHAR,
-    date_to: VARCHAR,
-  });
+  statement.bind(bindings);
   const result = await statement.runAndReadAll();
-  const rows = result.getRowObjectsJson();
+  const rows = result.getColumnsObjectJson();
 
-  res.send(rows);
+  res.type("json").send(rows);
 });
 
 app.use(errorHandler);
