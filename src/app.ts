@@ -251,7 +251,7 @@ app.get('/surveys', async (req: Request, res: Response) => {
   const columns = properties.map((p) => {
     if (roundableColumns.includes(p)) {
       // Round to 4 decimal places for numeric columns, to reduce size of response
-      return `ROUND(${tableName}.${p}, 4)`;
+      return `ROUND(${tableName}.${p}, 4) AS ${p}`;
     }
     return `${tableName}.${p}`;
   }).join(", ");
@@ -397,7 +397,7 @@ app.get('/prevalences', async (req: Request, res: Response) => {
   const columns = properties.map((p) => {
     if (roundableColumns.includes(p)) {
       // Round to 4 decimal places for numeric columns, to reduce size of response
-      return `ROUND(${tableName}.${p}, 4)`;
+      return `ROUND(${tableName}.${p}, 4) AS ${p}`;
     }
     return `${tableName}.${p}`;
   }).join(", ");
