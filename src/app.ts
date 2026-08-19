@@ -1,41 +1,13 @@
 import express, { type Express, type Request, type Response } from 'express';
-import { readdir } from 'fs/promises';
 import { DuckDBInstance } from '@duckdb/node-api';
 import config from './config/config.ts';
 import { errorHandler } from './middlewares/errorHandler.ts';
 import { requestTimingLogger } from './middlewares/requestTimingLogger.ts';
 import admin0RegionMetadata from '../data/admin0-region-metadata.json' with { type: "json" };
+import { adminLevels, dateRegex, LATEST_MODEL_VERSION, globalBounds, modelVersions, dataVersions } from './utils.ts';
+import type { Mutation } from './types.ts';
 
 // TODO: add compression in nginx.
-
-const latestModelVersion = "2026.05.08";
-
-const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-const adminLevels = ["0", "1", "2"];
-
-const staveFiles = await readdir("data/stave", { withFileTypes: true });
-const dataVersions = staveFiles
-  .filter(entry => entry.isDirectory())
-  .map(entry => entry.name);
-
-const modelFiles = await readdir("data/model", { withFileTypes: true });
-const modelVersions = modelFiles
-  .filter(entry => entry.isDirectory())
-  .map(entry => entry.name);
-
-// TODO: pre-calculate this from the in-scope countries, so it depends on model.
-const globalBounds = {
-  "bounds": {
-    "min": {
-      "lng": -70.0635,
-      "lat": 12.4124
-    },
-    "max": {
-      "lng": -69.8654,
-      "lat": 12.624
-    }
-  }
-};
 
 const instance = await DuckDBInstance.create(':memory:', {
   parquet_metadata_cache: "true",
@@ -43,14 +15,6 @@ const instance = await DuckDBInstance.create(':memory:', {
 const connection = await instance.connect();
 
 // Noting an assumption: the date range per variant will be the same across all admin levels.
-
-interface Mutation {
-  mutation: string;
-  date_range: {
-    start: string;
-    end: string;
-  };
-}
 
 
 // On creating with in-memory database: https://duckdb.org/docs/current/clients/node_neo/overview#create-instance
@@ -62,11 +26,12 @@ interface Mutation {
 
 const app: Express = express();
 app.use(requestTimingLogger);
+app.use(errorHandler);
 
 // Can be called with or without a model_release parameter.
 // If no model_release parameter, defaults to latest.
 app.get('/metadata', async (req: Request, res: Response) => {
-  const modelVersion = req.query['model_release'] ?? latestModelVersion;
+  const modelVersion = req.query['model_release'] ?? LATEST_MODEL_VERSION;
 
   // Security: Validate that the above is a filepath within the expected data directory,
   // by comparing it against a list of the actual prevalence data releases in the data/model directory.
@@ -406,8 +371,6 @@ app.get('/prevalences', async (req: Request, res: Response) => {
 
   res.type("json").send(cols);
 });
-
-app.use(errorHandler);
 
 app.listen(config.port, () => {
   console.log(`Server running on port ${config.port}`);
