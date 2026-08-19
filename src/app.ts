@@ -268,7 +268,7 @@ app.get('/surveys', async (req: Request, res: Response) => {
   }, {} as Record<string, string | null>);
   statement.bind(bindings);
   const result = await statement.runAndReadAll();
-  const rows = result.getColumnsObjectJson();
+  const rows = result.getRowObjectsJson();
 
   res.type("json").send(rows);
 });
@@ -411,9 +411,9 @@ app.get('/prevalences', async (req: Request, res: Response) => {
   }, {} as Record<string, string | null>);
   statement.bind(bindings);
   const result = await statement.runAndReadAll();
-  const rows = result.getColumnsObjectJson();
+  const cols = result.getColumnsObjectJson();
 
-  res.type("json").send(rows);
+  res.type("json").send(cols);
 });
 
 app.use(errorHandler);
