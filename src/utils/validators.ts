@@ -2,13 +2,25 @@ import { type Request, type Response } from 'express';
 import { LATEST_MODEL_VERSION, modelVersions, dataVersions, dateRegex } from '../constants.ts';
 import type { QueryParams } from '../types.ts';
 
-export const validateRequestedProperties = (queryParams: QueryParams, res: Response): string[] | null => {
-  const properties = queryParams.properties?.split(',').filter(p => !!p) ?? [];
-  if (properties.length === 0) {
+// Parse and validate the requested properties, returning an array of valid properties or sending a 400 response and returning null on failure.
+export const validateRequestedProperties = (
+  queryParams: QueryParams,
+  requestableProperties: string[], // provided by endpoint config
+  parquetColumns: Record<string, string>,
+  res: Response,
+): string[] | null => {
+  const requestedProperties = queryParams.properties?.split(',').filter(p => !!p) ?? [];
+  if (requestedProperties.length === 0) {
     res.status(400).send({ error: "At least one property must be requested." });
     return null;
   }
-  return properties;
+  const availableColumns = Object.keys(parquetColumns);
+  const invalid = requestedProperties.find(p => !requestableProperties.includes(p) || !availableColumns.includes(p));
+  if (invalid) {
+    res.status(400).send({ error: `Invalid property requested: ${invalid}` });
+    return null;
+  }
+  return requestedProperties;
 };
 
 export const validateModelRelease = (req: Request, res: Response): string | null => {

@@ -90,7 +90,7 @@ app.get('/surveys', async (req: Request, res: Response) => {
 
   const surveyDataParquet = `data/stave/${dataVersion}/survey_data.parquet`;
 
-  const result = await executeParquetQuery(queryParams, req.path, surveyDataParquet, res);
+  const result = await executeParquetQuery(queryParams, "/surveys", surveyDataParquet, res);
   if (!result) {
     return;
   }
@@ -142,7 +142,7 @@ app.get('/prevalences', async (req: Request, res: Response) => {
     }
   }
 
-  const result = await executeParquetQuery(queryParams, req.path, prevalencesParquet, res);
+  const result = await executeParquetQuery(queryParams, "/prevalences", prevalencesParquet, res);
   if (!result) {
     return;
   }
