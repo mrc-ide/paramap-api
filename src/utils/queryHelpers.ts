@@ -5,23 +5,35 @@ import type { QueryParams } from '../types.ts';
 import { validateRequestedProperties } from './validators.ts';
 
 type Bindings = Record<string, string | null>;
+type ColumnTypes = Record<string, string>;
 
 // Arbitrary alias for the parquet file in the SQL queries.
 const tableName = "p";
 
+const roundableColumnTypes = ["DOUBLE", "FLOAT", "DECIMAL"];
+
+// column mode: filter on the admin0 column directly.
+// bounds mode: translate the admin0 ISO code into lat/lng bounding-boxes.
+// Survey data does not come with region metadata, so we filter it by lat/lng.
+const Admin0Mode = {
+  BOUNDS: "bounds",
+  COLUMN: "column",
+} as const;
+
+type Admin0Mode = typeof Admin0Mode[keyof typeof Admin0Mode];
+
+type Endpoint = "/surveys" | "/prevalences";
 interface EndpointConfig {
-  // Allow-list of properties that clients may request as columns.
+  // An allow-list of properties that clients may request as columns.
   requestableProperties: string[];
   // Query parameters that may be used to filter the rows.
   selectableParamNames: string[];
-  // The column that date_from/date_to filter on.
+  // The column to filter on for requests that scope by date_from/date_to.
   dateColumn: string;
-  // 'bounds': translate the admin0 ISO code into lat/lng bounding-box clauses (no admin0 column in the data).
-  // 'column': filter on the admin0 column directly.
-  admin0Mode: 'bounds' | 'column';
+  admin0Mode: Admin0Mode;
 }
 
-const endpointConfigs: Record<string, EndpointConfig> = {
+const endpointConfigs: Record<Endpoint, EndpointConfig> = {
   "/surveys": {
     requestableProperties: [
       "study_label",
@@ -73,141 +85,97 @@ const endpointConfigs: Record<string, EndpointConfig> = {
     dateColumn: "date",
     admin0Mode: "column",
   },
-};
+} as const;
 
-// Probe the parquet file for its columns, and identify the numeric columns whose values can be rounded.
-const introspectColumns = async (parquetPath: string): Promise<{
-  availableColumns: string[];
-  roundableColumns: string[];
-}> => {
-  const columnsInData = await connection.runAndReadAll(`SELECT * FROM '${parquetPath}' LIMIT 1`);
-  const availableColumns = columnsInData.columnNames(); // Conceivably will vary by release if schema changes
-  const columnTypes = columnsInData.columnTypes();
-  const roundableColumns = availableColumns.filter((_col, index) => {
-    return ["DOUBLE", "FLOAT", "DECIMAL"].includes(String(columnTypes[index]));
-  });
-  return { availableColumns, roundableColumns };
-};
-
-// Sends a 400 response and returns false if any requested property is not requestable or not present in the data.
-const validateProperties = (
-  properties: string[],
-  requestableProperties: string[],
-  availableColumns: string[],
+// Run the whole query pipeline for an endpoint: parse and validate the requested properties,
+// build the WHERE clauses from the endpoint's filterable query parameters, and execute the query.
+// Sends a 400 response and returns null on any validation failure
+export const executeParquetQuery = async (
+  queryParams: QueryParams,
+  path: Endpoint,
+  parquetPath: string,
   res: Response,
-): boolean => {
-  const invalid = properties.find(p => !requestableProperties.includes(p) || !availableColumns.includes(p));
-  if (invalid) {
-    res.status(400).send({ error: `Invalid property requested: ${invalid}` });
-    return false;
+) => {
+  const config = endpointConfigs[path];
+  const selectColumns = await buildSelectColumns(queryParams, config, parquetPath, res);
+  if (!selectColumns) {
+    return null;
   }
-  return true;
+  const { whereClause, bindings } = buildWhereClause(queryParams, config, res);
+  const sql = `SELECT ${selectColumns} FROM '${parquetPath}' ${tableName} ${whereClause}`;
+  const statement = await connection.prepare(sql);
+  statement.bind(bindings);
+  return statement.runAndReadAll();
 };
 
-const buildWhereClauses = ({ selectableParams, queryParams, dateColumn, admin0Mode }: {
-  selectableParams: string[];
-  queryParams: QueryParams;
-  // The column that date_from/date_to filter on.
-  dateColumn: string;
-  // 'bounds': translate the admin0 ISO code into lat/lng bounding-box clauses (no admin0 column in the data).
-  // 'column': filter on the admin0 column directly.
-  admin0Mode: 'bounds' | 'column';
-}): { whereClauses: string[]; bindings: Bindings } | { error: string } => {
-  const whereClauses = ["1 = 1"]; // Start with a dummy condition to simplify appending AND clauses
-  const bindings: Bindings = {};
+const buildSelectColumns = async (
+  queryParams: QueryParams,
+  config: EndpointConfig,
+  parquetPath: string,
+  res: Response
+): Promise<string | null> => {
+  const parquetColumns = await inspectColumns(parquetPath);
+  const properties = validateRequestedProperties(queryParams, config.requestableProperties, parquetColumns, res);
+  if (!properties) {
+    return null;
+  }
 
-  for (const param of selectableParams) {
-    if (param === "admin0" && admin0Mode === "bounds") {
-      const iso = queryParams[param]!;
-      const region = admin0RegionMetadata.find(({ id }) => id === iso);
-      if (!region) {
-        return { error: `ISO code not found: ${iso}` };
-      }
-      const bounds = region.bounds;
+  return properties.map((p) => {
+    // Round to 4 decimal places for numeric columns, to reduce size of response
+    const columnType = parquetColumns[p];
+    return roundableColumnTypes.includes(columnType)
+      ? `ROUND(${tableName}.${p}, 4) AS ${p}`
+      : `${tableName}.${p}`;
+  }).join(", ");
+};
 
-      // We use lat and lng instead of admin0 in the SQL query, so admin0 is not added to the bindings.
-      whereClauses.push(
-        `${tableName}.lat >= ${bounds.min.lat}`,
-        `${tableName}.lat <= ${bounds.max.lat}`,
-        `${tableName}.lng >= ${bounds.min.lng}`,
-        `${tableName}.lng <= ${bounds.max.lng}`
-      );
+
+// Probe the parquet file for its columns and their SQL types.
+const inspectColumns = async (parquetPath: string): Promise<ColumnTypes> => {
+  const parquetColumns = await connection.runAndReadAll(`SELECT * FROM '${parquetPath}' LIMIT 1`);
+  const columnTypes = parquetColumns.columnTypes();
+  return Object.fromEntries(parquetColumns.columnNames().map((col, index) => {
+    return [col, String(columnTypes[index])];
+  }));
+};
+
+const buildWhereClause = (queryParams: QueryParams, config: EndpointConfig, res: Response): {
+  whereClause: string
+  bindings: Bindings
+} => {
+  const whereClauses = [];
+  const bindings: Bindings = {}; // SQL variable bindings
+  const columnsToSelect = config.selectableParamNames.filter(param => !!queryParams[param]);
+
+  for (const param of columnsToSelect) {
+    if (param === "admin0" && config.admin0Mode === "bounds") {
+      whereClauses.push(buildWhereBoundsClause(queryParams.admin0!, res));
       continue;
     }
-    const column = ["date_from", "date_to"].includes(param) ? dateColumn : param;
+    const column = ["date_from", "date_to"].includes(param) ? config.dateColumn : param;
     const equality = param === "date_from" ? ">=" : param === "date_to" ? "<=" : "=";
 
     whereClauses.push(`${tableName}.${column} ${equality} $${param}`);
     bindings[param] = queryParams[param] ?? null;
   }
 
-  return { whereClauses, bindings };
+  const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+  return { whereClause, bindings };
 };
 
-const buildSelectColumns = (
-  properties: string[],
-  roundableColumns: string[],
-): string =>
-  properties.map((p) => {
-    if (roundableColumns.includes(p)) {
-      // Round to 4 decimal places for numeric columns, to reduce size of response
-      return `ROUND(${tableName}.${p}, 4) AS ${p}`;
-    }
-    return `${tableName}.${p}`;
-  }).join(", ");
-
-const runQuery = async (
-  parquetPath: string,
-  selectColumns: string,
-  whereClauses: string[],
-  bindings: Bindings,
-) => {
-  const statement = await connection.prepare(
-    `SELECT ${selectColumns} FROM '${parquetPath}' ${tableName} WHERE ${whereClauses.join(' AND ')}`
-  );
-  statement.bind(bindings);
-  return statement.runAndReadAll();
-};
-
-// Run the whole query pipeline for an endpoint: parse and validate the requested properties,
-// build the WHERE clauses from the endpoint's filterable query parameters, and execute the query.
-// Endpoint-specific configuration is looked up from the supplied request path.
-// Sends a 400 response and returns null on any validation failure.
-export const executeParquetQuery = async (
-  queryParams: QueryParams,
-  path: string,
-  parquetPath: string,
-  res: Response,
-) => {
-  const config = endpointConfigs[path];
-  if (!config) {
-    throw new Error(`No endpoint config found for path: ${path}`);
-  }
-
-  const properties = validateRequestedProperties(queryParams, res);
-  if (!properties) {
+const buildWhereBoundsClause = (iso: string, res: Response) => {
+  const region = admin0RegionMetadata.find(({ id }) => id === iso);
+  if (!region) {
+    res.status(400).send({ error: `ISO code not found: ${iso}` });
     return null;
   }
+  const bounds = region.bounds;
 
-  const { availableColumns, roundableColumns } = await introspectColumns(parquetPath);
-
-  if (!validateProperties(properties, config.requestableProperties, availableColumns, res)) {
-    return null;
-  }
-
-  const selectableParams = config.selectableParamNames.filter(param => !!queryParams[param]);
-  const whereResult = buildWhereClauses({
-    selectableParams,
-    queryParams,
-    dateColumn: config.dateColumn,
-    admin0Mode: config.admin0Mode,
-  });
-  if ("error" in whereResult) {
-    res.status(400).send({ error: whereResult.error });
-    return null;
-  }
-  const { whereClauses, bindings } = whereResult;
-
-  const selectColumns = buildSelectColumns(properties, roundableColumns);
-  return runQuery(parquetPath, selectColumns, whereClauses, bindings);
+  return [
+    `${tableName}.lat >= ${bounds.min.lat}`,
+    `${tableName}.lat <= ${bounds.max.lat}`,
+    `${tableName}.lng >= ${bounds.min.lng}`,
+    `${tableName}.lng <= ${bounds.max.lng}`
+  ].join(" AND ");
 };
