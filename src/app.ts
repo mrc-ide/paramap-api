@@ -14,7 +14,6 @@ import { executeParquetQuery } from './utils/queryHelpers.ts';
 
 const app: Express = express();
 app.use(requestTimingLogger);
-app.use(errorHandler);
 
 // Can be called with or without a model_release parameter.
 // If no model_release parameter, defaults to latest.
@@ -149,6 +148,8 @@ app.get('/prevalences', async (req: Request, res: Response) => {
 
   res.type("json").send(result.getColumnsObjectJson());
 });
+
+app.use(errorHandler);
 
 app.listen(config.port, () => {
   console.log(`Server running on port ${config.port}`);
