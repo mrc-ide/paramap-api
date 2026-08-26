@@ -93,6 +93,3 @@ prevalence_tbl <- prevalence_tbl |>
 write_parquet(prevalence_tbl, file.path(output_dir, output_filename))
 
 cli_inform(c("v" = "Wrote {.file {output_filename}} with {nrow(prevalence_tbl)} rows to {.path {output_dir}}."))
-
-# TODO: consider sorting the table by whatever the most common/costly index is
-# e.g. sort by gene then by mutation, or sort by date, or sort by region.

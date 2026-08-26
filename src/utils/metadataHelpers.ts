@@ -3,14 +3,16 @@
 import { connection } from "../queryEngine.ts";
 import type { Mutation } from "../types.ts";
 
+// Get unique genetic variants and their associated genes and mutations,
+// as well as the date range for each variant, from the model outputs rectangle.
 export const getMutationsByGene = async (
   modelVersion: string,
 ): Promise<{
   gene: string,
   mutations: Mutation[],
 }[]> => {
-  // Get unique genetic variants and their associated genes and mutations.
-  // All from the model outputs rectangle, using the latest model version.
+  // The 'variant' column encodes both the gene and mutation, so we can
+  // group by that column to get unique variants, and then extract the gene and mutation from that.
   const uniqueVariants = await connection.runAndReadAll(`
     SELECT
       ANY_VALUE(gene) AS gene,
@@ -22,7 +24,9 @@ export const getMutationsByGene = async (
     GROUP BY variant
   `);
 
-  // Group the unique variants by gene, so that we can return a list of mutations for each gene in the metadata endpoint.
+  // Group the unique variants by gene, so that we can return a list of mutations
+  // for each gene in the metadata endpoint.
+  // We assume the date range per variant will be the same across all admin levels.
   return uniqueVariants.getRowObjects().reduce((acc, row) => {
     const gene = row.gene as string;
     const mutationObj = {

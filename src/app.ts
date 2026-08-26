@@ -1,19 +1,15 @@
 import express, { type Express, type Request, type Response } from 'express';
 import config from './config/config.ts';
 import { errorHandler } from './middlewares/errorHandler.ts';
-import { requestTimingLogger } from './middlewares/requestTimingLogger.ts';
+// import { requestTimingLogger } from './middlewares/requestTimingLogger.ts';
 import { globalBounds, modelVersions } from './constants.ts';
 import type { QueryParams } from './types.ts';
 import { validateAdmin0, validateAdminLevel, validateDataRelease, validateDateIsFirstOfMonth, validateDateParams, validateModelRelease, validateRequiredQueryParams } from './utils/validators.ts';
 import { executeParquetQuery } from './utils/dataHelpers.ts';
 import { getMutationsByGene } from './utils/metadataHelpers.ts';
 
-// TODO: add compression in nginx.
-
-// Noting an assumption: the date range per variant will be the same across all admin levels.
-
 const app: Express = express();
-app.use(requestTimingLogger);
+// app.use(requestTimingLogger);
 
 // Can be called with or without a model_release parameter.
 // If no model_release parameter, defaults to latest.
@@ -38,8 +34,6 @@ app.get('/metadata', async (req: Request, res: Response) => {
     bounds: globalBounds,
   });
 });
-
-// TODO: tell time columns to be time columns - https://duckdb.org/2024/12/18/duckdb-node-neo-client#binding-values-to-prepared-statements
 
 app.get('/surveys', async (req: Request, res: Response) => {
   const requiredParams = ['data_release', 'gene', 'mutation', 'properties'];
