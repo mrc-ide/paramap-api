@@ -3,6 +3,7 @@ import { connection } from '../queryEngine.ts';
 import admin0RegionMetadata from '../../data/admin0-region-metadata.json' with { type: "json" };
 import type { QueryParams } from '../types.ts';
 import { validateRequestedProperties } from './validators.ts';
+import type { DuckDBResultReader } from '@duckdb/node-api';
 
 type Bindings = Record<string, string | null>;
 type ColumnTypes = Record<string, string>;
@@ -95,32 +96,31 @@ export const executeParquetQuery = async (
   path: Endpoint,
   parquetPath: string,
   res: Response,
-) => {
+): Promise<DuckDBResultReader | null> => {
   const config = endpointConfigs[path];
-  const selectColumns = await buildSelectColumns(queryParams, config, parquetPath, res);
-  if (!selectColumns) {
-    return null;
-  }
-  const { whereClause, bindings } = buildWhereClause(queryParams, config, res);
-  const sql = `SELECT ${selectColumns} FROM '${parquetPath}' ${tableName} ${whereClause}`;
-  const statement = await connection.prepare(sql);
-  statement.bind(bindings);
-  return statement.runAndReadAll();
-};
 
-const buildSelectColumns = async (
-  queryParams: QueryParams,
-  config: EndpointConfig,
-  parquetPath: string,
-  res: Response
-): Promise<string | null> => {
   const parquetColumns = await inspectColumns(parquetPath);
   const properties = validateRequestedProperties(queryParams, config.requestableProperties, parquetColumns, res);
   if (!properties) {
     return null;
   }
 
-  return properties.map((p) => {
+  const selectColumns = await buildSelectColumns(parquetPath, properties);
+  const { whereClause, bindings } = buildWhereClause(queryParams, config, res);
+  const sql = `SELECT ${selectColumns} FROM '${parquetPath}' ${tableName} ${whereClause}`;
+  const statement = await connection.prepare(sql);
+  statement.bind(bindings);
+  const result = await statement.runAndReadAll();
+  return result;
+};
+
+const buildSelectColumns = async (
+  parquetPath: string,
+  requestedProperties: string[],
+): Promise<string> => {
+  const parquetColumns = await inspectColumns(parquetPath);
+
+  return requestedProperties.map((p) => {
     // Round to 4 decimal places for numeric columns, to reduce size of response
     const columnType = parquetColumns[p];
     return roundableColumnTypes.includes(columnType)
