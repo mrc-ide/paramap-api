@@ -28,7 +28,7 @@ interface EndpointConfig {
   // An allow-list of properties that clients may request as columns.
   requestableProperties: string[];
   // Query parameters that may be used to filter the rows.
-  selectableParamNames: string[];
+  filterableParams: string[];
   // The column to filter on for requests that scope by date_from/date_to.
   dateColumn: string;
   admin0Mode: Admin0Mode;
@@ -57,7 +57,7 @@ const endpointConfigs: Record<Endpoint, EndpointConfig> = {
       "gene",
       "mutation",
     ],
-    selectableParamNames: ["admin0", "survey_id", "date_from", "date_to", "gene", "mutation"],
+    filterableParams: ["admin0", "survey_id", "date_from", "date_to", "gene", "mutation"],
     dateColumn: "collection_day",
     admin0Mode: "bounds",
   },
@@ -82,7 +82,7 @@ const endpointConfigs: Record<Endpoint, EndpointConfig> = {
       "no_of_informing_surveys",
       "nearest_survey_by_date" // gives a survey_id
     ],
-    selectableParamNames: ["admin0", "admin1", "admin2", "gene", "mutation", "date", "date_from", "date_to"],
+    filterableParams: ["admin0", "admin1", "admin2", "gene", "mutation", "date", "date_from", "date_to"],
     dateColumn: "date",
     admin0Mode: "column",
   },
@@ -143,9 +143,9 @@ const buildWhereClause = (queryParams: QueryParams, config: EndpointConfig, res:
 } => {
   const whereClauses = [];
   const bindings: Bindings = {}; // SQL variable bindings
-  const columnsToSelect = config.selectableParamNames.filter(param => !!queryParams[param]);
+  const columnsToFilter = config.filterableParams.filter(param => !!queryParams[param]);
 
-  for (const param of columnsToSelect) {
+  for (const param of columnsToFilter) {
     if (param === "admin0" && config.admin0Mode === "bounds") {
       whereClauses.push(buildWhereBoundsClause(queryParams.admin0!, res));
       continue;
