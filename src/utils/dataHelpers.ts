@@ -142,7 +142,7 @@ const buildWhereClause = (queryParams: QueryParams, config: EndpointConfig, res:
   bindings: Bindings
 } => {
   const whereClauses = [];
-  const bindings: Bindings = {}; // SQL variable bindings
+  const bindings: Bindings = {}; // Map from param name to value for use in prepared statement.
   const columnsToFilter = config.filterableParams.filter(param => !!queryParams[param]);
 
   for (const param of columnsToFilter) {
