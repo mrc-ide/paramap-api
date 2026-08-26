@@ -1,3 +1,10 @@
+# This script generates example model output data for
+# testing and development purposes.
+# It creates Parquet files for admin0, admin1, and admin2 levels with
+# simulated prevalence data for a set of genetic variants over time.
+# Once we have real model outputs, we can remove this script
+# and use the real data instead.
+
 library(arrow)
 library(cli)
 library(dplyr)

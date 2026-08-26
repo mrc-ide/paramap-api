@@ -88,9 +88,7 @@ const endpointConfigs: Record<Endpoint, EndpointConfig> = {
   },
 } as const;
 
-// Run the whole query pipeline for an endpoint: parse and validate the requested properties,
-// build the WHERE clauses from the endpoint's filterable query parameters, and execute the query.
-// Sends a 400 response and returns null on any validation failure
+// Build and run an SQL query out of the requested properties and filters.
 export const executeParquetQuery = async (
   queryParams: QueryParams,
   path: Endpoint,

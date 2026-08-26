@@ -11,7 +11,6 @@ export const errorHandler = (
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   next: NextFunction
 ) => {
-  // TODO: Add logging to an external service here
   console.error(err);
   res.status(err.status || 500).json({
     message: err.message || 'Internal Server Error',

@@ -1,6 +1,5 @@
 // A setup script to run before starting the app.
 // Sends a request to grout to get the bounding boxes for admin0 regions.
-// TODO: use dedicated paramap dataset rather than gadm41?
 
 import { mkdir, writeFile } from "fs/promises";
 import { dirname, resolve } from "path";

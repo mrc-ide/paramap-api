@@ -4,7 +4,6 @@ export const LATEST_MODEL_VERSION = "2026.05.08";
 export const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 export const adminLevels = ["0", "1", "2"];
 
-// TODO: pre-calculate this from the in-scope countries, so it depends on model.
 export const globalBounds = {
   "bounds": {
     "min": {
