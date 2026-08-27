@@ -161,7 +161,7 @@ describe('GET /prevalences', () => {
 
     expect(response.status).toBe(400);
     expect(response.body.error).toBe(
-      'Missing required query parameters: model_release, gene, mutation, properties',
+      'Missing required query parameters: model_release, properties, gene, mutation',
     );
   });
 

@@ -3,12 +3,11 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { connection } from '../queryEngine.ts';
 import config from '../config/config.ts';
-import type { QueryParams } from '../types.ts';
+import type { Column, QueryParams } from '../types.ts';
 import { validateRequestedProperties } from './validators.ts';
 import type { DuckDBResultReader } from '@duckdb/node-api';
+import { SURVEY_COLUMNS } from '../constants.ts';
 
-type Bindings = Record<string, string | null>;
-type ColumnTypes = Record<string, string>;
 interface Admin0RegionMetadata {
   id: string;
   bounds: {
@@ -33,17 +32,16 @@ const Admin0Mode = {
   BOUNDS: "bounds",
   COLUMN: "column",
 } as const;
-
 type Admin0Mode = typeof Admin0Mode[keyof typeof Admin0Mode];
 
 type Endpoint = "/surveys" | "/prevalences";
-interface EndpointConfig {
+interface EndpointConfig<T extends Column = Column> {
   // An allow-list of properties that clients may request as columns.
-  requestableProperties: string[];
+  requestableProperties: T[];
   // Query parameters that may be used to filter the rows.
   filterableParams: string[];
   // The column to filter on for requests that scope by date_from/date_to.
-  dateColumn: string;
+  dateColumn: T;
   admin0Mode: Admin0Mode;
 }
 
@@ -128,7 +126,7 @@ export const executeParquetQuery = async (
 
 const buildSelectColumns = async (
   parquetPath: string,
-  requestedProperties: string[],
+  requestedProperties: Column[],
 ): Promise<string> => {
   const parquetColumns = await inspectColumns(parquetPath);
 
@@ -143,36 +141,35 @@ const buildSelectColumns = async (
 
 
 // Ask the parquet file for its columns and their SQL types.
-const inspectColumns = async (parquetPath: string): Promise<ColumnTypes> => {
+const inspectColumns = async (parquetPath: string): Promise<Record<Column, string>> => {
   const parquetColumns = await connection.runAndReadAll(`SELECT * FROM '${parquetPath}' LIMIT 1`);
   const columnTypes = parquetColumns.columnTypes();
   return Object.fromEntries(parquetColumns.columnNames().map((col, index) => {
     return [col, String(columnTypes[index])];
-  }));
+  })) as Record<Column, string>;
 };
 
 const buildWhereClause = (queryParams: QueryParams, config: EndpointConfig, res: Response): {
   whereClause: string
-  bindings: Bindings
+  bindings: Record<string, string | null>
 } | undefined => {
   const whereClauses = [];
-  const bindings: Bindings = {}; // Map from param name to value for use in prepared statement.
-  const columnsToFilter = config.filterableParams.filter(param => !!queryParams[param]);
+  const bindings: Record<string, string | null> = {}; // Map from param name to value for use in prepared statement.
+  const paramsToFilter = config.filterableParams.filter(param => !!queryParams[param]);
 
-  for (const param of columnsToFilter) {
-    if (param === "admin0" && config.admin0Mode === "bounds") {
+  for (const paramName of paramsToFilter) {
+    if (paramName === "admin0" && config.admin0Mode === "bounds") {
       const boundsClause = buildWhereBoundsClause(queryParams.admin0!, res);
-      if (!boundsClause) {
-        return;
-      }
+      if (!boundsClause) return;
       whereClauses.push(boundsClause);
       continue;
     }
-    const column = ["date_from", "date_to"].includes(param) ? config.dateColumn : param;
-    const equality = param === "date_from" ? ">=" : param === "date_to" ? "<=" : "=";
+    const column = ["date_from", "date_to"].includes(paramName) ? config.dateColumn : paramName;
+    const equality = paramName === "date_from" ? ">=" : paramName === "date_to" ? "<=" : "=";
 
-    whereClauses.push(`${tableName}.${column} ${equality} $${param}`);
-    bindings[param] = queryParams[param] ?? null;
+    const paramVal = queryParams[paramName];
+    whereClauses.push(`${tableName}.${column} ${equality} $${paramName}`);
+    bindings[paramName] = paramVal ?? null;
   }
 
   const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
@@ -189,9 +186,9 @@ const buildWhereBoundsClause = (iso: string, res: Response) => {
   const bounds = region.bounds;
 
   return [
-    `${tableName}.lat >= ${bounds.min.lat}`,
-    `${tableName}.lat <= ${bounds.max.lat}`,
-    `${tableName}.lng >= ${bounds.min.lng}`,
-    `${tableName}.lng <= ${bounds.max.lng}`
+    `${tableName}.${SURVEY_COLUMNS.LAT} >= ${bounds.min.lat}`,
+    `${tableName}.${SURVEY_COLUMNS.LAT} <= ${bounds.max.lat}`,
+    `${tableName}.${SURVEY_COLUMNS.LNG} >= ${bounds.min.lng}`,
+    `${tableName}.${SURVEY_COLUMNS.LNG} <= ${bounds.max.lng}`
   ].join(" AND ");
 };

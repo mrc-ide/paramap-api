@@ -17,6 +17,47 @@ export const globalBounds = {
   }
 };
 
+export const SURVEY_COLUMNS = {
+  GENE: "gene",
+  MUTATION: "mutation",
+  STUDY_LABEL: "study_label",
+  CONTRIBUTORS: "contributors",
+  REFERENCE: "reference",
+  REFERENCE_YEAR: "reference_year",
+  SURVEY_ID: "survey_id",
+  SITE_NAME: "site_name",
+  LAT: "lat",
+  LNG: "lng",
+  COLLECTION_START: "collection_start",
+  COLLECTION_END: "collection_end",
+  COLLECTION_DAY: "collection_day",
+  NUMERATOR: "numerator",
+  DENOMINATOR: "denominator",
+  PREVALENCE: "prevalence",
+  PREVALENCE_LOWER: "prevalence_lower",
+  PREVALENCE_UPPER: "prevalence_upper",
+  VARIANT: "variant",
+} as const;
+
+export const PREVALENCE_COLUMNS = {
+  GENE: "gene",
+  MUTATION: "mutation",
+  DATE: "date",
+  ADMIN0: "admin0",
+  ADMIN1: "admin1",
+  ADMIN2: "admin2",
+  MEAN: "mean",
+  MEDIAN: "median",
+  SD: "SD",
+  LOWER_95: "lower_95",
+  UPPER_95: "upper_95",
+  EXCEEDANCE_1: "exceedance_1",
+  EXCEEDANCE_2: "exceedance_2",
+  EXCEEDANCE_5: "exceedance_5",
+  EXCEEDANCE_10: "exceedance_10",
+  NO_OF_INFORMING_SURVEYS: "no_of_informing_surveys",
+  NEAREST_SURVEY_BY_DATE: "nearest_survey_by_date",
+} as const;
 
 const staveFiles = await readdir(join(config.dataDir, "stave"), { withFileTypes: true });
 export const dataVersions = staveFiles
