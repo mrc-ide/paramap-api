@@ -6,7 +6,7 @@ import config from '../config/config.ts';
 import type { Column, QueryParams } from '../types.ts';
 import { validateRequestedProperties } from './validators.ts';
 import type { DuckDBResultReader } from '@duckdb/node-api';
-import { SURVEY_COLUMNS } from '../constants.ts';
+import { PREVALENCE_COLUMNS, SURVEY_COLUMNS } from '../constants.ts';
 
 interface Admin0RegionMetadata {
   id: string;
@@ -47,52 +47,13 @@ interface EndpointConfig<T extends Column = Column> {
 
 const endpointConfigs: Record<Endpoint, EndpointConfig> = {
   "/surveys": {
-    requestableProperties: [
-      "collection_day",
-      "collection_end",
-      "collection_start",
-      "contributors",
-      "denominator",
-      "gene",
-      "lat",
-      "lng",
-      "mutation",
-      "numerator",
-      "prevalence_lower",
-      "prevalence_upper",
-      "prevalence",
-      "reference_year",
-      "reference",
-      "site_name",
-      "study_label",
-      "survey_id",
-      "variant",
-    ],
+    requestableProperties: Object.values(SURVEY_COLUMNS),
     filterableParams: ["admin0", "survey_id", "date_from", "date_to", "gene", "mutation"],
     dateColumn: "collection_day",
     admin0Mode: "bounds",
   },
   "/prevalences": {
-    requestableProperties: [
-      "admin0",
-      "admin1",
-      "admin2",
-      "date",
-      "exceedance_1",
-      "exceedance_10",
-      "exceedance_2",
-      "exceedance_5",
-      "gene",
-      "lower_95",
-      "mean",
-      "median",
-      "mutation",
-      "nearest_survey_by_date", // gives a survey_id
-      "no_of_informing_surveys",
-      "SD",
-      "upper_95",
-      "variant",
-    ],
+    requestableProperties: Object.values(PREVALENCE_COLUMNS),
     filterableParams: ["admin0", "admin1", "admin2", "gene", "mutation", "date", "date_from", "date_to"],
     dateColumn: "date",
     admin0Mode: "column",
