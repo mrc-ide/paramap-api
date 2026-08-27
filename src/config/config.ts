@@ -4,18 +4,17 @@ dotenv.config();
 
 interface Config {
   port?: number;
-  nodeEnv: string;
   dataDir: string;
   latestModelVersion: string;
 }
 
 const port = process.env.PORT;
-const nodeEnv = process.env.NODE_ENV || 'development';
 
 const config: Config = {
   port: port ? Number(port) : undefined,
-  nodeEnv,
-  dataDir: nodeEnv === 'test' ? 'tests/fixtures/data' : 'data',
+  dataDir: process.env.NODE_ENV === 'test'
+    ? 'tests/fixtures/data'
+    : 'data',
   latestModelVersion: '2026.05.08',
 };
 

@@ -107,20 +107,17 @@ export const executeParquetQuery = async (
   path: Endpoint,
   parquetPath: string,
   res: Response,
-): Promise<DuckDBResultReader | null> => {
+): Promise<DuckDBResultReader | undefined> => {
   const config = endpointConfigs[path];
 
   const parquetColumns = await inspectColumns(parquetPath);
   const properties = validateRequestedProperties(queryParams, config.requestableProperties, parquetColumns, res);
-  if (!properties) {
-    return null;
-  }
+  if (!properties) return;
 
   const selectColumns = await buildSelectColumns(parquetPath, properties);
   const where = buildWhereClause(queryParams, config, res);
-  if (!where) {
-    return null;
-  }
+  if (!where) return;
+
   const { whereClause, bindings } = where;
   const sql = `SELECT ${selectColumns} FROM '${parquetPath}' ${tableName} ${whereClause}`;
   const statement = await connection.prepare(sql);
@@ -157,7 +154,7 @@ const inspectColumns = async (parquetPath: string): Promise<ColumnTypes> => {
 const buildWhereClause = (queryParams: QueryParams, config: EndpointConfig, res: Response): {
   whereClause: string
   bindings: Bindings
-} | null => {
+} | undefined => {
   const whereClauses = [];
   const bindings: Bindings = {}; // Map from param name to value for use in prepared statement.
   const columnsToFilter = config.filterableParams.filter(param => !!queryParams[param]);
@@ -166,7 +163,7 @@ const buildWhereClause = (queryParams: QueryParams, config: EndpointConfig, res:
     if (param === "admin0" && config.admin0Mode === "bounds") {
       const boundsClause = buildWhereBoundsClause(queryParams.admin0!, res);
       if (!boundsClause) {
-        return null;
+        return;
       }
       whereClauses.push(boundsClause);
       continue;
@@ -187,7 +184,7 @@ const buildWhereBoundsClause = (iso: string, res: Response) => {
   const region = admin0RegionMetadata.find(({ id }) => id === iso);
   if (!region) {
     res.status(400).send({ error: `ISO code not found: ${iso}` });
-    return null;
+    return;
   }
   const bounds = region.bounds;
 

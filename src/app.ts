@@ -17,10 +17,7 @@ export const createApp = (): Express => {
   // Can be called with or without a model_release parameter.
   // If no model_release parameter, defaults to latest.
   app.get('/metadata', async (req: Request, res: Response) => {
-    if (!validateModelRelease(req, res)) {
-      res.end();
-      return;
-    }
+    if (!validateModelRelease(req, res)) return;
 
     const modelVersion = (req.query['model_release'] ?? config.latestModelVersion) as string;
     const mutationsByGene = await getMutationsByGene(modelVersion);
@@ -45,19 +42,13 @@ export const createApp = (): Express => {
       || !validateDataRelease(req, res)
       || !validateDateParams(req, res)
       || !validateAdmin0(req, res)
-    ) {
-      res.end();
-      return;
-    }
+    ) return;
 
     const dataVersion = req.query['data_release'] as string;
     const surveyDataParquet = join(config.dataDir, "stave", dataVersion, "survey_data.parquet");
 
     const result = await executeParquetQuery(req.query as QueryParams, "/surveys", surveyDataParquet, res);
-    if (!result) {
-      res.end();
-      return;
-    }
+    if (!result) return;
 
     res.type("json").send(result.getRowObjectsJson());
   });
@@ -70,10 +61,7 @@ export const createApp = (): Express => {
       || !validateDateIsFirstOfMonth(req, res)
       || !validateAdminLevel(req, res)
       || !validateAdmin0(req, res)
-    ) {
-      res.end();
-      return;
-    }
+    ) return;
 
     const queryParams = req.query as QueryParams;
     // Client may request results at any of the available levels of granularity.
@@ -82,10 +70,7 @@ export const createApp = (): Express => {
     const prevalencesParquet = join(config.dataDir, "model", modelVersion, `admin${adminLevel}.parquet`);
 
     const result = await executeParquetQuery(queryParams, "/prevalences", prevalencesParquet, res);
-    if (!result) {
-      res.end();
-      return;
-    }
+    if (!result) return;
 
     res.type("json").send(result.getColumnsObjectJson());
   });
