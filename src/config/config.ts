@@ -3,16 +3,18 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 interface Config {
-  port: number;
+  port?: number;
   nodeEnv: string;
+  dataDir: string;
 }
 
 const port = process.env.PORT;
-if (!port) throw new Error('PORT is required');
+const nodeEnv = process.env.NODE_ENV || 'development';
 
 const config: Config = {
-  port: Number(port),
-  nodeEnv: process.env.NODE_ENV || 'development',
+  port: port ? Number(port) : undefined,
+  nodeEnv,
+  dataDir: nodeEnv === 'test' ? 'tests/fixtures/data' : 'data',
 };
 
 export default config;

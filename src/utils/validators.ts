@@ -61,12 +61,12 @@ export const validateDateParams = (req: Request, res: Response): boolean => {
   const date_from = queryParams.date_from;
   const date_to = queryParams.date_to;
 
-  ["date", "date_from", "date_to"].forEach(param => {
+  for (const param of ["date", "date_from", "date_to"]) {
     if (queryParams[param] && !dateRegex.test(queryParams[param]!)) {
       res.status(400).send({ error: `Invalid date format for parameter '${param}'. Expected YYYY-MM-DD.` });
       return false;
     }
-  });
+  }
 
   if (date_from && !date_to) {
     res.status(400).send({ error: "Missing required parameter 'date_to' when 'date_from' is specified." });
