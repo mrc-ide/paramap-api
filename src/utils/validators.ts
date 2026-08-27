@@ -1,7 +1,6 @@
 import { type Request, type Response } from 'express';
-import config from '../config/config.ts';
 import { modelVersions, dataVersions, adminLevels } from '../constants.ts';
-import type { QueryParams } from '../types.ts';
+import type { QueryParams, Column } from '../types.ts';
 
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -17,11 +16,14 @@ export const validateRequiredQueryParams = (req: Request, res: Response, require
 // Parse and validate the requested properties, returning an array of valid properties or sending a 400 response and returning null on failure.
 export const validateRequestedProperties = (
   queryParams: QueryParams,
-  requestableProperties: string[], // provided by endpoint config
-  parquetColumns: Record<string, string>,
+  requestableProperties: Column[], // provided by endpoint config
+  parquetColumns: { [K in Column]?: string },
   res: Response,
-): string[] | null => {
-  const requestedProperties = queryParams.properties?.split(',').filter(p => !!p) ?? [];
+): Column[] | null => {
+  const requestedProperties = queryParams.properties
+    ?.split(',')
+    .map(p => p as Column)
+    .filter(p => !!p) ?? [];
   if (requestedProperties.length === 0) {
     res.status(400).send({ error: "At least one property must be requested." });
     return null;
@@ -35,9 +37,7 @@ export const validateRequestedProperties = (
   return requestedProperties;
 };
 
-export const validateModelRelease = (req: Request, res: Response): boolean => {
-  const modelVersion = (req.query['model_release'] ?? config.latestModelVersion) as string;
-
+export const validateModelRelease = (modelVersion: string, res: Response): boolean => {
   // Security against SQL injection: Validate that the above is a filepath within the expected data directory,
   // by comparing it against a list of the actual prevalence data releases in the data/model directory.
   if (!modelVersions.includes(modelVersion)) {

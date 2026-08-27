@@ -13,7 +13,6 @@ export const getMutationsByGene = async (
   gene: string,
   mutations: Mutation[],
 }[]> => {
-  const prevalencePath = join(config.dataDir, "model", modelVersion, "admin0.parquet");
   // The 'variant' column encodes both the gene and mutation, so we can
   // group by that column to get unique variants, and then extract the gene and mutation from that.
   const uniqueVariants = await connection.runAndReadAll(`
@@ -23,7 +22,7 @@ export const getMutationsByGene = async (
       variant,
       STRFTIME(MIN("date"), '%Y-%m-%d') AS min_date,
       STRFTIME(MAX("date"), '%Y-%m-%d') AS max_date
-    FROM '${prevalencePath}'
+    FROM '${join(config.dataDir, "model", modelVersion, "admin0.parquet")}'
     GROUP BY variant
   `);
 
