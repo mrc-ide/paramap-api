@@ -16,8 +16,9 @@ vi.mock('../../src/queryEngine.ts', () => ({
 }));
 
 import { executeParquetQuery } from '../../src/utils/dataHelpers.ts';
+import fixtureConfig from '../fixtures/fixture-config.json' with { type: 'json' };
 
-const parquetPath = 'tests/fixtures/data/model/2026.05.08/admin1.parquet';
+const parquetPath = `tests/fixtures/data/model/${fixtureConfig.modelRelease}/admin1.parquet`;
 const columns = {
   admin0: 'VARCHAR',
   admin1: 'VARCHAR',
@@ -120,7 +121,7 @@ describe('executeParquetQuery SQL generation', () => {
   });
 
   it('expands survey admin0 into latitude and longitude bounds', async () => {
-    const surveyPath = 'tests/fixtures/data/stave/2026.03.17/survey_data.parquet';
+    const surveyPath = `tests/fixtures/data/stave/${fixtureConfig.dataRelease}/survey_data.parquet`;
     db.runAndReadAll.mockResolvedValue({
       columnNames: () => ['survey_id', 'lat', 'lng', 'collection_day'],
       columnTypes: () => ['VARCHAR', 'DOUBLE', 'DOUBLE', 'DATE'],
@@ -146,7 +147,7 @@ describe('executeParquetQuery SQL generation', () => {
   });
 
   it('returns null after reporting an unknown ISO code', async () => {
-    const surveyPath = 'tests/fixtures/data/stave/2026.03.17/survey_data.parquet';
+    const surveyPath = `tests/fixtures/data/stave/${fixtureConfig.dataRelease}/survey_data.parquet`;
     db.runAndReadAll.mockResolvedValue({
       columnNames: () => ['survey_id', 'lat', 'lng'],
       columnTypes: () => ['VARCHAR', 'DOUBLE', 'DOUBLE'],

@@ -7,6 +7,7 @@ vi.mock('../../src/queryEngine.ts', () => ({
 }));
 
 import { getMutationsByGene } from '../../src/utils/metadataHelpers.ts';
+import fixtureConfig from '../fixtures/fixture-config.json' with { type: 'json' };
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -40,11 +41,13 @@ describe('getMutationsByGene', () => {
       ],
     });
 
-    const result = await getMutationsByGene('2026.05.08');
+    const result = await getMutationsByGene(fixtureConfig.modelRelease);
 
     expect(runAndReadAll).toHaveBeenCalledOnce();
     const sql = runAndReadAll.mock.calls[0][0] as string;
-    expect(sql).toContain("FROM 'tests/fixtures/data/model/2026.05.08/admin0.parquet'");
+    expect(sql).toContain(
+      `FROM 'tests/fixtures/data/model/${fixtureConfig.modelRelease}/admin0.parquet'`,
+    );
     expect(sql).toContain("STRFTIME(MIN(\"date\"), '%Y-%m-%d') AS min_date");
     expect(sql).toContain("STRFTIME(MAX(\"date\"), '%Y-%m-%d') AS max_date");
     expect(sql).toContain('GROUP BY variant');

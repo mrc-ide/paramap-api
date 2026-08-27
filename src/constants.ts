@@ -2,8 +2,6 @@ import { readdir } from "fs/promises";
 import { join } from "node:path";
 import config from "./config/config.ts";
 
-export const LATEST_MODEL_VERSION = "2026.05.08";
-export const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 export const adminLevels = ["0", "1", "2"];
 
 export const globalBounds = {

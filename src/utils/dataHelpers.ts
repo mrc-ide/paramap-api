@@ -145,7 +145,7 @@ const buildSelectColumns = async (
 };
 
 
-// Probe the parquet file for its columns and their SQL types.
+// Ask the parquet file for its columns and their SQL types.
 const inspectColumns = async (parquetPath: string): Promise<ColumnTypes> => {
   const parquetColumns = await connection.runAndReadAll(`SELECT * FROM '${parquetPath}' LIMIT 1`);
   const columnTypes = parquetColumns.columnTypes();
