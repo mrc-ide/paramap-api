@@ -1,6 +1,9 @@
 import { type Request, type Response } from 'express';
-import { LATEST_MODEL_VERSION, modelVersions, dataVersions, dateRegex, adminLevels } from '../constants.ts';
+import config from '../config/config.ts';
+import { modelVersions, dataVersions, adminLevels } from '../constants.ts';
 import type { QueryParams } from '../types.ts';
+
+const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
 export const validateRequiredQueryParams = (req: Request, res: Response, requiredParams: string[]): boolean => {
   const missingParams = requiredParams.filter(param => !req.query[param]);
@@ -33,7 +36,7 @@ export const validateRequestedProperties = (
 };
 
 export const validateModelRelease = (req: Request, res: Response): boolean => {
-  const modelVersion = (req.query['model_release'] ?? LATEST_MODEL_VERSION) as string;
+  const modelVersion = (req.query['model_release'] ?? config.latestModelVersion) as string;
 
   // Security against SQL injection: Validate that the above is a filepath within the expected data directory,
   // by comparing it against a list of the actual prevalence data releases in the data/model directory.

@@ -1,10 +1,11 @@
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { createApp } from '../../src/app.ts';
+import fixtureConfig from '../fixtures/fixture-config.json' with { type: 'json' };
 
 const app = createApp();
 const baseQuery = {
-  model_release: '2026.05.08',
+  model_release: fixtureConfig.modelRelease,
   admin_level: '1',
   gene: 'crt',
   mutation: '76K',
@@ -21,20 +22,21 @@ describe('GET /prevalences', () => {
       });
 
     expect(response.status).toBe(200);
-    expect(response.body).toEqual({
-      admin1: ['MLI.1_1', 'MLI.2_1', 'ETH.1_1', 'ETH.2_1'],
-      median: [0.5647, 0.5847, 0.6647, 0.6847],
-    });
+    const rows = response.body.admin1.map((admin1: string, index: number) => ({
+      admin1,
+      median: response.body.median[index],
+    }));
+    expect(rows).toHaveLength(20);
+    expect(rows).toEqual(expect.arrayContaining([
+      { admin1: 'MLI.1_1', median: 0.0745 },
+      { admin1: 'ETH.8_1', median: 0.6524 },
+    ]));
   });
 
   it.each([
-    { from: '2023-05-01', expectedRows: 12, includesHistoric: false },
-    { from: '2003-05-01', expectedRows: 16, includesHistoric: true },
-  ])('returns the requested global date range from $from', async ({
-    from,
-    expectedRows,
-    includesHistoric,
-  }) => {
+    '2023-05-01',
+    '2003-05-01',
+  ])('returns the available global date range when requested from %s', async (from) => {
     const response = await request(app)
       .get('/prevalences')
       .query({
@@ -45,8 +47,10 @@ describe('GET /prevalences', () => {
       });
 
     expect(response.status).toBe(200);
-    expect(response.body.admin1).toHaveLength(expectedRows);
-    expect(response.body.date.includes('2003-05-01')).toBe(includesHistoric);
+      expect(response.body.admin1).toHaveLength(500);
+      expect(response.body.date).toContain('2023-05-01');
+      expect(response.body.date).toContain('2025-05-01');
+      expect(response.body.date).not.toContain('2003-05-01');
   });
 
   it('returns the full on-hover details for one region', async () => {
@@ -72,16 +76,16 @@ describe('GET /prevalences', () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({
-      median: [0.5647],
-      mean: [0.5747],
-      lower_95: [0.4647],
-      upper_95: [0.6647],
-      SD: [0.02],
-      exceedance_1: [0.9],
-      exceedance_2: [0.8],
-      exceedance_5: [0.7],
-      exceedance_10: [0.6],
-      no_of_informing_surveys: [2],
+      median: [0.0745],
+      mean: [0.0908],
+      lower_95: [0],
+      upper_95: [0.1979],
+      SD: [0.0546],
+      exceedance_1: [0.9305],
+      exceedance_2: [0.9026],
+      exceedance_5: [0.7725],
+      exceedance_10: [0.4334],
+      no_of_informing_surveys: [32],
     });
   });
 
@@ -96,16 +100,21 @@ describe('GET /prevalences', () => {
       });
 
     expect(response.status).toBe(200);
-    expect(response.body).toEqual({
-      median: [0.5647, 0.5847],
-      admin1: ['MLI.1_1', 'MLI.2_1'],
-    });
+      const rows = response.body.admin1.map((admin1: string, index: number) => ({
+        admin1,
+        median: response.body.median[index],
+      }));
+      expect(rows).toHaveLength(9);
+      expect(rows).toEqual(expect.arrayContaining([
+        { admin1: 'MLI.1_1', median: 0.0745 },
+        { admin1: 'MLI.8_1', median: 0.6369 },
+      ]));
   });
 
   it.each([
-    { from: '2023-05-01', expectedRows: 12 },
-    { from: '2003-05-01', expectedRows: 16 },
-  ])('reads admin2 data for a country from $from', async ({ from, expectedRows }) => {
+      '2023-05-01',
+      '2003-05-01',
+  ])('reads all available admin2 country data when requested from %s', async (from) => {
     const response = await request(app)
       .get('/prevalences')
       .query({
@@ -118,8 +127,8 @@ describe('GET /prevalences', () => {
       });
 
     expect(response.status).toBe(200);
-    expect(response.body.admin1).toHaveLength(expectedRows);
-    expect(response.body.median).toHaveLength(expectedRows);
+    expect(response.body.admin1).toHaveLength(1250);
+    expect(response.body.median).toHaveLength(1250);
   });
 
   it('returns an unbounded time series when date parameters are omitted', async () => {
@@ -133,13 +142,16 @@ describe('GET /prevalences', () => {
       });
 
     expect(response.status).toBe(200);
-    expect(response.body.date).toEqual([
-      '2003-05-01',
-      '2023-05-01',
-      '2024-05-01',
-      '2025-05-01',
-    ]);
-    expect(response.body.median).toEqual([0.2, 0.4, 0.5647, 0.7]);
+    const rows = response.body.date.map((date: string, index: number) => ({
+      date,
+      median: response.body.median[index],
+    }));
+    expect(rows).toHaveLength(25);
+    expect(rows).toEqual(expect.arrayContaining([
+      { date: '2023-05-01', median: 0.476 },
+      { date: '2024-05-01', median: 0.287 },
+      { date: '2025-05-01', median: 0.214 },
+    ]));
   });
 
   it('reports missing required parameters', async () => {

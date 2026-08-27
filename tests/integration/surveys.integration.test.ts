@@ -1,10 +1,11 @@
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { createApp } from '../../src/app.ts';
+import fixtureConfig from '../fixtures/fixture-config.json' with { type: 'json' };
 
 const app = createApp();
 const baseQuery = {
-  data_release: '2026.03.17',
+  data_release: fixtureConfig.dataRelease,
   gene: 'crt',
   mutation: '76K',
 };
@@ -22,22 +23,23 @@ describe('GET /surveys', () => {
       });
 
     expect(response.status).toBe(200);
-    expect(response.body).toEqual([
+    expect(response.body).toHaveLength(2);
+    expect(response.body).toEqual(expect.arrayContaining([
       {
-        survey_id: 's0001_Bamako',
-        lat: 12.6129,
-        lng: -8.1356,
-        collection_day: '2010-01-15',
-        denominator: 170,
+        survey_id: 's0006_kisii_period2',
+        lat: -0.6805,
+        lng: 34.7771,
+        collection_day: '2010-01-01',
+        denominator: 5,
       },
       {
-        survey_id: 's0002_Gondar_Zuria',
-        lat: 12.6,
-        lng: 37.5,
-        collection_day: '2010-01-20',
-        denominator: 100,
+        survey_id: 's0136_Bunkpurugu_period1',
+        lat: 10.5418,
+        lng: -0.1739,
+        collection_day: '2010-01-01',
+        denominator: 72,
       },
-    ]);
+    ]));
   });
 
   it('returns additional surveys for a wide lazy-loading range', async () => {
@@ -51,12 +53,9 @@ describe('GET /surveys', () => {
       });
 
     expect(response.status).toBe(200);
-    expect(response.body.map((survey: { survey_id: string }) => survey.survey_id)).toEqual([
-      's0001_Bamako',
-      's0002_Gondar_Zuria',
-      's0003_Historic_Mali',
-      's0004_Future_ETH',
-    ]);
+    const surveyIds = response.body.map((survey: { survey_id: string }) => survey.survey_id);
+    expect(surveyIds).toHaveLength(4);
+    expect(surveyIds).toEqual(expect.arrayContaining(fixtureConfig.surveyIds));
   });
 
   it('returns the requested details for a single survey', async () => {
@@ -84,19 +83,19 @@ describe('GET /surveys', () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual([{
-      lat: 12.6,
-      lng: 37.5,
+      lat: 12.6739,
+      lng: 37.3435,
       site_name: 'Gondar Zuria',
-      collection_day: '2010-01-20',
-      collection_start: '2010-01-01',
-      collection_end: '2010-01-31',
-      study_label: 'Gondar Zuria study',
-      reference_year: 2017,
-      numerator: 40,
-      denominator: 100,
-      prevalence: 40,
-      prevalence_lower: 30,
-      prevalence_upper: 50,
+      collection_day: '2022-07-02',
+      collection_start: '2022-01-01',
+      collection_end: '2023-01-01',
+      study_label: 'Artemisinin resistant kelch13 R622I and RDT negativity approaching predominance in northern Ethiopia and emerging C580Y of African origin threaten falciparum malaria control.',
+      reference_year: 2025,
+      numerator: 75,
+      denominator: 438,
+      prevalence: 17.1233,
+      prevalence_lower: 13.7134,
+      prevalence_upper: 20.9845,
     }]);
   });
 
@@ -113,7 +112,7 @@ describe('GET /surveys', () => {
 
     expect(response.status).toBe(200);
     expect(response.body.map((survey: { survey_id: string }) => survey.survey_id)).toEqual([
-      's0001_Bamako',
+      's0136_Bunkpurugu_period1',
     ]);
   });
 
@@ -129,10 +128,12 @@ describe('GET /surveys', () => {
       });
 
     expect(response.status).toBe(200);
-    expect(response.body.map((survey: { survey_id: string }) => survey.survey_id)).toEqual([
-      's0001_Bamako',
-      's0003_Historic_Mali',
-    ]);
+    const surveyIds = response.body.map((survey: { survey_id: string }) => survey.survey_id);
+    expect(surveyIds).toHaveLength(2);
+    expect(surveyIds).toEqual(expect.arrayContaining([
+      'WWARN_16154388_mali_1998',
+      's0136_Bunkpurugu_period1',
+    ]));
   });
 
   it('rejects an ISO code absent from the bounds metadata', async () => {

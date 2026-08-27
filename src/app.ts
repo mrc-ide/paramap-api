@@ -4,7 +4,7 @@ import { pathToFileURL } from 'node:url';
 import config from './config/config.ts';
 import { errorHandler } from './middlewares/errorHandler.ts';
 // import { requestTimingLogger } from './middlewares/requestTimingLogger.ts';
-import { globalBounds, LATEST_MODEL_VERSION, modelVersions } from './constants.ts';
+import { globalBounds, modelVersions } from './constants.ts';
 import type { QueryParams } from './types.ts';
 import { validateAdmin0, validateAdminLevel, validateDataRelease, validateDateIsFirstOfMonth, validateDateParams, validateModelRelease, validateRequiredQueryParams } from './utils/validators.ts';
 import { executeParquetQuery } from './utils/dataHelpers.ts';
@@ -22,7 +22,7 @@ export const createApp = (): Express => {
       return;
     }
 
-    const modelVersion = (req.query['model_release'] ?? LATEST_MODEL_VERSION) as string;
+    const modelVersion = (req.query['model_release'] ?? config.latestModelVersion) as string;
     const mutationsByGene = await getMutationsByGene(modelVersion);
     const metadataPath = pathToFileURL(resolve(config.dataDir, "model", modelVersion, "metadata.json")).href;
     const { default: modelMetadata } = await import(metadataPath, { with: { type: "json" } });

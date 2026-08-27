@@ -14,7 +14,7 @@
     "lint": "eslint 'src/**/*.ts' 'tests/**/*.ts' 'scripts/generate-test-fixtures.ts' 'vitest.config.ts'",
     "test": "vitest run",
     "test:watch": "vitest",
-    "generate-test-fixtures": "TS_NODE_TRANSPILE_ONLY=true node --loader ts-node/esm scripts/generate-test-fixtures.ts",
+    "generate-test-fixtures": "TS_NODE_TRANSPILE_ONLY=true node --loader ts-node/esm tests/fixtures/generate-test-fixtures.ts",
     "docker-build-image": "docker build -t paramap-api .",
     "docker-run": "docker run -e PORT=3000 -p 3000:3000 paramap-api"
   },

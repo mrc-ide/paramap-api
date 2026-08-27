@@ -10,6 +10,7 @@ import {
   validateRequestedProperties,
   validateRequiredQueryParams,
 } from '../../src/utils/validators.ts';
+import fixtureConfig from '../fixtures/fixture-config.json' with { type: 'json' };
 
 const mockReqRes = (query: Record<string, string | undefined>) => {
   const req = { query } as unknown as Request;
@@ -101,7 +102,7 @@ describe('release validators', () => {
   });
 
   it('accepts a known data release', () => {
-    const { req, res } = mockReqRes({ data_release: '2026.03.17' });
+    const { req, res } = mockReqRes({ data_release: fixtureConfig.dataRelease });
     expect(validateDataRelease(req, res)).toBe(true);
   });
 

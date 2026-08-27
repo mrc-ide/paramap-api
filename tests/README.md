@@ -16,9 +16,18 @@ Integration tests use supertest to exercise Express, validation, query construct
 real DuckDB, and tiny committed parquet fixtures together. They cover representative
 request shapes for `/metadata`, `/prevalences`, and `/surveys`.
 
-The fixtures live under `tests/fixtures/data`; the application datasets under `data`
-are not used because they are gitignored and can be several gigabytes. Regenerate the
-fixtures with `npm run generate-test-fixtures`.
+The fixtures live under `tests/fixtures/data`; tests and CI never read the application
+datasets under `data`, which are gitignored and can be several gigabytes.
+
+`npm run generate-test-fixtures` is a maintainer command that does require those source
+datasets locally. It copies filtered, real-data parquet slices while preserving their
+schemas. The selected model release is the single `MODEL_RELEASE` constant in
+`tests/generate-test-fixtures.ts`; its data release is read from model metadata.
+Generation validates the configured date windows and writes a temporary fixture set
+before replacing the existing one.
+
+The generated `fixture-config.json` supplies release identities and slice details to the
+tests. The fixture release can differ from the application's production latest release.
 
 ## Keeping the suite focused
 
