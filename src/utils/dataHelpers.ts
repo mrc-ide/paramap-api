@@ -1,12 +1,25 @@
 import { type Response } from 'express';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { connection } from '../queryEngine.ts';
-import admin0RegionMetadata from '../../data/admin0-region-metadata.json' with { type: "json" };
+import config from '../config/config.ts';
 import type { QueryParams } from '../types.ts';
 import { validateRequestedProperties } from './validators.ts';
 import type { DuckDBResultReader } from '@duckdb/node-api';
 
 type Bindings = Record<string, string | null>;
 type ColumnTypes = Record<string, string>;
+interface Admin0RegionMetadata {
+  id: string;
+  bounds: {
+    min: { lat: number; lng: number };
+    max: { lat: number; lng: number };
+  };
+}
+
+const admin0RegionMetadata = JSON.parse(
+  await readFile(join(config.dataDir, "admin0-region-metadata.json"), "utf8"),
+) as Admin0RegionMetadata[];
 
 // Arbitrary alias for the parquet file in the SQL queries.
 const tableName = "p";
@@ -104,7 +117,11 @@ export const executeParquetQuery = async (
   }
 
   const selectColumns = await buildSelectColumns(parquetPath, properties);
-  const { whereClause, bindings } = buildWhereClause(queryParams, config, res);
+  const where = buildWhereClause(queryParams, config, res);
+  if (!where) {
+    return null;
+  }
+  const { whereClause, bindings } = where;
   const sql = `SELECT ${selectColumns} FROM '${parquetPath}' ${tableName} ${whereClause}`;
   const statement = await connection.prepare(sql);
   statement.bind(bindings);
@@ -140,14 +157,18 @@ const inspectColumns = async (parquetPath: string): Promise<ColumnTypes> => {
 const buildWhereClause = (queryParams: QueryParams, config: EndpointConfig, res: Response): {
   whereClause: string
   bindings: Bindings
-} => {
+} | null => {
   const whereClauses = [];
   const bindings: Bindings = {}; // Map from param name to value for use in prepared statement.
   const columnsToFilter = config.filterableParams.filter(param => !!queryParams[param]);
 
   for (const param of columnsToFilter) {
     if (param === "admin0" && config.admin0Mode === "bounds") {
-      whereClauses.push(buildWhereBoundsClause(queryParams.admin0!, res));
+      const boundsClause = buildWhereBoundsClause(queryParams.admin0!, res);
+      if (!boundsClause) {
+        return null;
+      }
+      whereClauses.push(boundsClause);
       continue;
     }
     const column = ["date_from", "date_to"].includes(param) ? config.dateColumn : param;
