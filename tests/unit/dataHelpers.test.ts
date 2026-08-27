@@ -146,7 +146,7 @@ describe('executeParquetQuery SQL generation', () => {
     });
   });
 
-  it('returns null after reporting an unknown ISO code', async () => {
+  it('returns undefined after reporting an unknown ISO code', async () => {
     const surveyPath = `tests/fixtures/data/stave/${fixtureConfig.dataRelease}/survey_data.parquet`;
     db.runAndReadAll.mockResolvedValue({
       columnNames: () => ['survey_id', 'lat', 'lng'],
@@ -161,7 +161,7 @@ describe('executeParquetQuery SQL generation', () => {
       res,
     );
 
-    expect(result).toBeNull();
+    expect(result).toBeUndefined();
     expect(response.send).toHaveBeenCalledWith({ error: 'ISO code not found: ZZZ' });
     expect(db.prepare).not.toHaveBeenCalled();
   });
@@ -207,7 +207,7 @@ describe('executeParquetQuery SQL generation', () => {
       res,
     );
 
-    expect(result).toBeNull();
+    expect(result).toBeUndefined();
     expect(response.send).toHaveBeenCalledWith({ error: 'Invalid property requested: admin2' });
     expect(db.prepare).not.toHaveBeenCalled();
   });
