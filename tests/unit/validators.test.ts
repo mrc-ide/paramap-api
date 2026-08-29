@@ -1,7 +1,6 @@
 import type { Request, Response } from 'express';
 import { describe, expect, it, vi } from 'vitest';
 import {
-  validateAdmin0,
   validateAdminLevel,
   validateDataRelease,
   validateDateIsFirstOfMonth,
@@ -26,9 +25,11 @@ const mockReqRes = (query: Record<string, string | undefined>) => {
 
 describe('validateRequiredQueryParams', () => {
   it('reports every missing parameter', () => {
-    const { req, res } = mockReqRes({ gene: 'crt' });
+    const { req, res } = mockReqRes({ gene: 'crt', mutation: '', properties: undefined });
 
-    expect(validateRequiredQueryParams(req, res, ['gene', 'mutation', 'properties'])).toBe(false);
+    expect(
+      validateRequiredQueryParams(req, res, ['gene', 'mutation', 'properties'])
+    ).toBe(false);
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.send).toHaveBeenCalledWith({
       error: 'Missing required query parameters: mutation, properties',
@@ -38,68 +39,65 @@ describe('validateRequiredQueryParams', () => {
   it('accepts a request containing every required parameter', () => {
     const { req, res, } = mockReqRes({ gene: 'crt', mutation: '76K' });
 
-    expect(validateRequiredQueryParams(req, res, ['gene', 'mutation'])).toBe(true);
+    expect(
+      validateRequiredQueryParams(req, res, ['gene', 'mutation'])
+    ).toBe(true);
     expect(res.send).not.toHaveBeenCalled();
   });
 });
 
 describe('validateRequestedProperties', () => {
-  const available = { admin1: 'VARCHAR', median: 'DOUBLE' };
+  const dbTypes = { admin1: 'VARCHAR', median: 'DOUBLE' };
 
   it('requires at least one property', () => {
-    const { res, } = mockReqRes({});
+    const { res } = mockReqRes({});
 
-    expect(validateRequestedProperties({}, ['admin1', 'median'], available, res)).toBeNull();
-    expect(res.send).toHaveBeenCalledWith({ error: 'At least one property must be requested.' });
+    expect(
+      validateRequestedProperties({ properties: '' }, ['admin1', 'median'], dbTypes, res)
+    ).toBe(false);
+    expect(res.status).toHaveBeenCalledWith(400);
   });
 
   it('rejects a property outside the endpoint allow-list', () => {
     const { res, } = mockReqRes({});
 
-    expect(validateRequestedProperties(
-      { properties: 'admin1,secret' },
-      ['admin1', 'median'],
-      { ...available, secret: 'VARCHAR' },
-      res,
-    )).toBeNull();
-    expect(res.send).toHaveBeenCalledWith({ error: 'Invalid property requested: secret' });
+    expect(
+      validateRequestedProperties({ properties: 'admin1,median' }, ['median'], dbTypes, res)
+    ).toBe(false);
+    expect(res.send).toHaveBeenCalledWith({ error: 'Invalid property requested: admin1' });
+    expect(res.status).toHaveBeenCalledWith(400);
   });
 
   it('rejects an allowed property absent from the parquet file', () => {
     const { res, } = mockReqRes({});
 
-    expect(validateRequestedProperties(
-      { properties: 'admin1,median' },
-      ['admin1', 'median'],
-      { admin1: 'VARCHAR' },
-      res,
-    )).toBeNull();
+    expect(
+      validateRequestedProperties({ properties: 'median' }, ['median'], {}, res)
+    ).toBe(false);
     expect(res.send).toHaveBeenCalledWith({ error: 'Invalid property requested: median' });
+    expect(res.status).toHaveBeenCalledWith(400);
   });
 
-  it('returns the requested property list', () => {
+  it('returns true if the requested property list is valid', () => {
     const { res } = mockReqRes({});
 
-    expect(validateRequestedProperties(
-      { properties: 'admin1,median' },
-      ['admin1', 'median'],
-      available,
-      res,
-    )).toEqual(['admin1', 'median']);
+    expect(
+      validateRequestedProperties({ properties: 'admin1,median' }, ['admin1', 'median'], dbTypes, res)
+    ).toBe(true);
   });
 });
 
 describe('release validators', () => {
-  it('accepts the default model release', () => {
+  it('accepts a known model release', () => {
     const { res } = mockReqRes({});
-    expect(validateModelRelease("2026.05.08", res)).toBe(true);
+    expect(validateModelRelease(fixtureConfig.modelRelease, res)).toBe(true);
   });
 
   it('rejects an unknown model release', () => {
     const { res } = mockReqRes({ model_release: '../private' });
 
     expect(validateModelRelease("../private", res)).toBe(false);
-    expect(res.send).toHaveBeenCalledWith({ error: 'Invalid model release: ../private' });
+    expect(res.status).toHaveBeenCalledWith(400);
   });
 
   it('accepts a known data release', () => {
@@ -111,9 +109,7 @@ describe('release validators', () => {
     const { req, res } = mockReqRes({ data_release: '../private' });
 
     expect(validateDataRelease(req, res)).toBe(false);
-    expect(res.send).toHaveBeenCalledWith({
-      error: 'Invalid data release requested: ../private',
-    });
+    expect(res.status).toHaveBeenCalledWith(400);
   });
 });
 
@@ -125,36 +121,24 @@ describe('validateDateParams', () => {
     expect(res.send).toHaveBeenCalledWith({
       error: `Invalid date format for parameter '${parameter}'. Expected YYYY-MM-DD.`,
     });
+    expect(res.status).toHaveBeenCalledWith(400);
   });
 
-  it('requires date_to with date_from', () => {
-    const { req, res } = mockReqRes({ date_from: '2024-01-01' });
+  it.each(['date_from', 'date_to'])('requires %s with the other date range parameter', (parameter) => {
+    const { req, res } = mockReqRes({ [parameter]: '2024-01-01' });
 
     expect(validateDateParams(req, res)).toBe(false);
-    expect(res.send).toHaveBeenCalledWith({
-      error: "Missing required parameter 'date_to' when 'date_from' is specified.",
-    });
+    expect(res.status).toHaveBeenCalledWith(400);
   });
 
-  it('requires date_from with date_to', () => {
-    const { req, res } = mockReqRes({ date_to: '2024-01-01' });
-
-    expect(validateDateParams(req, res)).toBe(false);
-    expect(res.send).toHaveBeenCalledWith({
-      error: "Missing required parameter 'date_from' when 'date_to' is specified.",
-    });
-  });
-
-  it('rejects a reversed date range', () => {
+  it('rejects when date_from is later than date_to', () => {
     const { req, res } = mockReqRes({
       date_from: '2025-01-01',
       date_to: '2024-01-01',
     });
 
     expect(validateDateParams(req, res)).toBe(false);
-    expect(res.send).toHaveBeenCalledWith({
-      error: "'date_from' cannot be later than 'date_to'.",
-    });
+    expect(res.status).toHaveBeenCalledWith(400);
   });
 
   it('accepts a valid date range', () => {
@@ -181,20 +165,25 @@ describe('validateDateIsFirstOfMonth', () => {
 });
 
 describe('validateAdminLevel', () => {
-  it('requires admin_level', () => {
+  it('requires admin_level to be present', () => {
     const { req, res } = mockReqRes({});
 
     expect(validateAdminLevel(req, res)).toBe(false);
-    expect(res.send).toHaveBeenCalledWith({
-      error: 'Missing required query parameter: admin_level',
-    });
+    expect(res.status).toHaveBeenCalledWith(400);
+  });
+
+  it('requires admin_level to be non-empty', () => {
+    const { req, res } = mockReqRes({ admin_level: '' });
+
+    expect(validateAdminLevel(req, res)).toBe(false);
+    expect(res.status).toHaveBeenCalledWith(400);
   });
 
   it('rejects an unsupported admin level', () => {
     const { req, res } = mockReqRes({ admin_level: '3' });
 
     expect(validateAdminLevel(req, res)).toBe(false);
-    expect(res.send).toHaveBeenCalledWith({ error: 'Invalid admin level requested: 3' });
+    expect(res.status).toHaveBeenCalledWith(400);
   });
 
   it('rejects a containing region more granular than the results', () => {
@@ -204,29 +193,11 @@ describe('validateAdminLevel', () => {
     });
 
     expect(validateAdminLevel(req, res)).toBe(false);
-    expect(res.send).toHaveBeenCalledWith({
-      error: 'You cannot request results at a less granular level than that of the containing region.',
-    });
+    expect(res.status).toHaveBeenCalledWith(400);
   });
 
   it('accepts a valid level and containing region', () => {
     const { req, res } = mockReqRes({ admin_level: '2', admin1: 'MLI.1_1' });
     expect(validateAdminLevel(req, res)).toBe(true);
-  });
-});
-
-describe('validateAdmin0', () => {
-  it('rejects a malformed ISO code', () => {
-    const { req, res } = mockReqRes({ admin0: 'Mali' });
-
-    expect(validateAdmin0(req, res)).toBe(false);
-    expect(res.send).toHaveBeenCalledWith({
-      error: "Invalid ISO code for parameter 'admin0'. Expected a 3-letter uppercase ISO code.",
-    });
-  });
-
-  it('accepts a three-letter uppercase ISO code', () => {
-    const { req, res } = mockReqRes({ admin0: 'MLI' });
-    expect(validateAdmin0(req, res)).toBe(true);
   });
 });

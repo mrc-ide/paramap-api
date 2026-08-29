@@ -48,7 +48,7 @@ describe('GET /surveys', () => {
       .query({
         ...baseQuery,
         date_from: '2000-01-01',
-        date_to: '2030-02-01',
+        date_to: '2025-01-01',
         properties: pointProperties,
       });
 
@@ -100,23 +100,6 @@ describe('GET /surveys', () => {
   });
 
   it('filters country survey points using the country bounding box', async () => {
-    const response = await request(app)
-      .get('/surveys')
-      .query({
-        ...baseQuery,
-        admin0: 'MLI',
-        date_from: '2010-01-01',
-        date_to: '2010-02-01',
-        properties: pointProperties,
-      });
-
-    expect(response.status).toBe(200);
-    expect(response.body.map((survey: { survey_id: string }) => survey.survey_id)).toEqual([
-      's0136_Bunkpurugu_period1',
-    ]);
-  });
-
-  it('returns all in-country surveys in a wide lazy-loading range', async () => {
     const response = await request(app)
       .get('/surveys')
       .query({

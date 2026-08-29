@@ -14,7 +14,7 @@ export const getMutationsByGene = async (
   mutations: Mutation[],
 }[]> => {
   // The 'variant' column encodes both the gene and mutation, so we can
-  // group by that column to get unique variants, and then extract the gene and mutation from that.
+  // group by that column to get unique variants.
   const uniqueVariants = await connection.runAndReadAll(`
     SELECT
       ANY_VALUE(gene) AS gene,

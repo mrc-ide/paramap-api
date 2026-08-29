@@ -6,58 +6,61 @@ import fixtureConfig from '../fixtures/fixture-config.json' with { type: 'json' 
 const app = createApp();
 const baseQuery = {
   model_release: fixtureConfig.modelRelease,
-  admin_level: '1',
   gene: 'crt',
   mutation: '76K',
 };
 
 describe('GET /prevalences', () => {
-  it('returns per-region medians for a global single-date view', async () => {
+  it('returns per-region info for a global single-date view', async () => {
     const response = await request(app)
       .get('/prevalences')
       .query({
         ...baseQuery,
+        admin_level: '0',
         date: '2024-05-01',
-        properties: 'admin1,median',
+        properties: 'admin0,median',
       });
 
     expect(response.status).toBe(200);
-    const rows = response.body.admin1.map((admin1: string, index: number) => ({
-      admin1,
-      median: response.body.median[index],
-    }));
-    expect(rows).toHaveLength(20);
-    expect(rows).toEqual(expect.arrayContaining([
-      { admin1: 'MLI.1_1', median: 0.0745 },
-      { admin1: 'ETH.8_1', median: 0.6524 },
+    // Expect all admin1 values to be unique
+    const uniqueAdmin0 = new Set(response.body.admin0);
+    expect(uniqueAdmin0.size).toBe(2);
+    expect(response.body.admin0).toEqual(['ETH', 'MLI']);
+    expect(response.body.median).toHaveLength(2);
+    expect(response.body.median).toEqual(expect.arrayContaining([
+      0.2031,
+      0.2870,
     ]));
   });
 
-  it.each([
-    '2023-05-01',
-    '2003-05-01',
-  ])('returns the available global date range when requested from %s', async (from) => {
+  it('returns results within a range of dates', async () => {
     const response = await request(app)
       .get('/prevalences')
       .query({
         ...baseQuery,
-        date_from: from,
-        date_to: '2025-05-01',
-        properties: 'admin1,median,date',
+        admin_level: '0',
+        date_from: '2024-06-01',
+        date_to: '2025-01-01',
+        properties: 'admin0,median,date',
       });
 
     expect(response.status).toBe(200);
-      expect(response.body.admin1).toHaveLength(500);
-      expect(response.body.date).toContain('2023-05-01');
-      expect(response.body.date).toContain('2025-05-01');
-      expect(response.body.date).not.toContain('2003-05-01');
+    const expectedLength = 2 * 8; // 2 admin0 regions * 8 months in the date range
+    expect(response.body.admin0).toHaveLength(expectedLength);
+    expect(response.body.median).toHaveLength(expectedLength);
+    expect(response.body.date).toHaveLength(expectedLength);
+    expect(response.body.date).toContain('2024-06-01');
+    expect(response.body.date).toContain('2025-01-01');
+    expect(response.body.date).not.toContain('2023-01-01');
+    expect(response.body.date).not.toContain('2026-01-01');
   });
 
-  it('returns the full on-hover details for one region', async () => {
+  it('returns details for one region', async () => {
     const response = await request(app)
       .get('/prevalences')
       .query({
         ...baseQuery,
+        admin_level: '1',
         admin1: 'MLI.1_1',
         date: '2024-05-01',
         properties: [
@@ -89,46 +92,50 @@ describe('GET /prevalences', () => {
     });
   });
 
-  it('scopes an admin1 view to a country', async () => {
+  it('can scope an admin1-level request to an admin0 region', async () => {
     const response = await request(app)
       .get('/prevalences')
       .query({
         ...baseQuery,
+        admin_level: '1',
         admin0: 'MLI',
         date: '2024-05-01',
         properties: 'median,admin1',
       });
 
     expect(response.status).toBe(200);
-      const rows = response.body.admin1.map((admin1: string, index: number) => ({
-        admin1,
-        median: response.body.median[index],
-      }));
-      expect(rows).toHaveLength(9);
-      expect(rows).toEqual(expect.arrayContaining([
-        { admin1: 'MLI.1_1', median: 0.0745 },
-        { admin1: 'MLI.8_1', median: 0.6369 },
-      ]));
+    const rows = response.body.admin1.map((admin1: string, index: number) => ({
+      admin1,
+      median: response.body.median[index],
+    }));
+    expect(rows).toHaveLength(9);
+    expect(rows).toEqual(expect.arrayContaining([
+      { admin1: 'MLI.1_1', median: 0.0745 },
+      { admin1: 'MLI.8_1', median: 0.6369 },
+    ]));
   });
 
-  it.each([
-      '2023-05-01',
-      '2003-05-01',
-  ])('reads all available admin2 country data when requested from %s', async (from) => {
+  it('can scope an admin2-level request to an admin0 region', async () => {
     const response = await request(app)
       .get('/prevalences')
       .query({
         ...baseQuery,
         admin_level: '2',
         admin0: 'MLI',
-        date_from: from,
-        date_to: '2025-05-01',
-        properties: 'admin1,median,date',
+        date: '2024-05-01',
+        properties: 'median,admin2',
       });
 
     expect(response.status).toBe(200);
-    expect(response.body.admin1).toHaveLength(1250);
-    expect(response.body.median).toHaveLength(1250);
+      const rows = response.body.admin2.map((admin2: string, index: number) => ({
+        admin2,
+        median: response.body.median[index],
+      }));
+      expect(rows).toHaveLength(50);
+      expect(rows).toEqual(expect.arrayContaining([
+        { admin2: 'MLI.1.1_1', median: 0.1244 },
+        { admin2: 'MLI.8.1_1', median: 0.396 },
+      ]));
   });
 
   it('returns an unbounded time series when date parameters are omitted', async () => {
@@ -170,6 +177,7 @@ describe('GET /prevalences', () => {
       .get('/prevalences')
       .query({
         ...baseQuery,
+        admin_level: '1',
         admin2: 'MLI.1.1_1',
         properties: 'admin1',
       });
@@ -183,6 +191,7 @@ describe('GET /prevalences', () => {
       .get('/prevalences')
       .query({
         ...baseQuery,
+        admin_level: '1',
         date: '2024-05-01',
         properties: 'admin1,password',
       });

@@ -70,9 +70,9 @@ export const executeParquetQuery = async (
   const config = endpointConfigs[path];
 
   const parquetColumns = await inspectColumns(parquetPath);
-  const properties = validateRequestedProperties(queryParams, config.requestableProperties, parquetColumns, res);
-  if (!properties) return;
+  if (!validateRequestedProperties(queryParams, config.requestableProperties, parquetColumns, res)) return;
 
+  const properties = queryParams.properties?.split(',').map(p => p as Column) ?? [];
   const selectColumns = await buildSelectColumns(parquetPath, properties);
   const where = buildWhereClause(queryParams, config, res);
   if (!where) return;
@@ -120,9 +120,12 @@ const buildWhereClause = (queryParams: QueryParams, config: EndpointConfig, res:
 
   for (const paramName of paramsToFilter) {
     if (paramName === "admin0" && config.admin0Mode === "bounds") {
-      const boundsClause = buildWhereBoundsClause(queryParams.admin0!, res);
-      if (!boundsClause) return;
-      whereClauses.push(boundsClause);
+      const region = admin0RegionMetadata.find(({ id }) => id === queryParams.admin0);
+      if (!region) {
+        res.status(400).send({ error: `ISO code not found: ${queryParams.admin0}` });
+        return;
+      }
+      whereClauses.push(buildBoundsClause(region));
       continue;
     }
     const column = ["date_from", "date_to"].includes(paramName) ? config.dateColumn : paramName;
@@ -138,12 +141,7 @@ const buildWhereClause = (queryParams: QueryParams, config: EndpointConfig, res:
   return { whereClause, bindings };
 };
 
-const buildWhereBoundsClause = (iso: string, res: Response) => {
-  const region = admin0RegionMetadata.find(({ id }) => id === iso);
-  if (!region) {
-    res.status(400).send({ error: `ISO code not found: ${iso}` });
-    return;
-  }
+const buildBoundsClause = (region: Admin0RegionMetadata) => {
   const bounds = region.bounds;
 
   return [

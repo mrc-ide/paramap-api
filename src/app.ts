@@ -6,7 +6,7 @@ import { errorHandler } from './middlewares/errorHandler.ts';
 // import { requestTimingLogger } from './middlewares/requestTimingLogger.ts';
 import { PREVALENCE_COLUMNS, SURVEY_COLUMNS, globalBounds, modelVersions } from './constants.ts';
 import type { QueryParams } from './types.ts';
-import { validateAdmin0, validateAdminLevel, validateDataRelease, validateDateIsFirstOfMonth, validateDateParams, validateModelRelease, validateRequiredQueryParams } from './utils/validators.ts';
+import { validateAdminLevel, validateDataRelease, validateDateIsFirstOfMonth, validateDateParams, validateModelRelease, validateRequiredQueryParams } from './utils/validators.ts';
 import { executeParquetQuery } from './utils/dataHelpers.ts';
 import { getMutationsByGene } from './utils/metadataHelpers.ts';
 
@@ -46,7 +46,6 @@ export const createApp = (): Express => {
     if (!validateRequiredQueryParams(req, res, requiredParams)
       || !validateDataRelease(req, res)
       || !validateDateParams(req, res)
-      || !validateAdmin0(req, res)
     ) return;
 
     const dataVersion = req.query['data_release'] as string;
@@ -74,7 +73,6 @@ export const createApp = (): Express => {
       || !validateDateParams(req, res)
       || !validateDateIsFirstOfMonth(req, res)
       || !validateAdminLevel(req, res)
-      || !validateAdmin0(req, res)
     ) return;
 
     // Client may request results at any of the available levels of granularity.
