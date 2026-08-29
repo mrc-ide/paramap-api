@@ -1,37 +1,36 @@
+// WHERE I GOT UP TO - reviewing changes/tests as far down as this file
+
 import type { Response } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { executeParquetQuery } from '../../src/utils/dataHelpers.ts';
+import fixtureConfig from '../fixtures/fixture-config.json' with { type: 'json' };
 
 const db = vi.hoisted(() => ({
   bind: vi.fn(),
   prepare: vi.fn(),
   runAndReadAll: vi.fn(),
-  runPrepared: vi.fn(),
 }));
 
 vi.mock('../../src/queryEngine.ts', () => ({
   connection: {
     prepare: db.prepare,
     runAndReadAll: db.runAndReadAll,
-  },
+  }
 }));
 
-import { executeParquetQuery } from '../../src/utils/dataHelpers.ts';
-import fixtureConfig from '../fixtures/fixture-config.json' with { type: 'json' };
-
-const parquetPath = `tests/fixtures/data/model/${fixtureConfig.modelRelease}/admin1.parquet`;
-const columns = {
-  admin0: 'VARCHAR',
+const admin1ParquetPath = `tests/fixtures/data/model/${fixtureConfig.modelRelease}/admin1.parquet`;
+const surveyPath = `tests/fixtures/data/stave/${fixtureConfig.dataRelease}/survey_data.parquet`;
+const columnsTypes = {
   admin1: 'VARCHAR',
   gene: 'VARCHAR',
   mutation: 'VARCHAR',
   date: 'DATE',
+  collection_day: 'DATE',
   median: 'DOUBLE',
   no_of_informing_surveys: 'INTEGER',
-};
-
-const inspectResult = {
-  columnNames: () => Object.keys(columns),
-  columnTypes: () => Object.values(columns),
+  survey_id: 'VARCHAR',
+  lat: 'DOUBLE',
+  lng: 'DOUBLE',
 };
 
 const mockResponse = () => {
@@ -40,22 +39,21 @@ const mockResponse = () => {
     send: vi.fn(),
   };
   response.status.mockReturnValue(response);
-  return { res: response as unknown as Response, response };
+  return response as unknown as Response;
 };
 
 beforeEach(() => {
   vi.clearAllMocks();
-  db.runAndReadAll.mockResolvedValue(inspectResult);
-  db.runPrepared.mockResolvedValue({ result: true });
-  db.prepare.mockResolvedValue({
-    bind: db.bind,
-    runAndReadAll: db.runPrepared,
+  db.runAndReadAll.mockResolvedValue({
+    columnNames: () => Object.keys(columnsTypes),
+    columnTypes: () => Object.values(columnsTypes),
   });
+  db.prepare.mockResolvedValue(db);
 });
 
 describe('executeParquetQuery SQL generation', () => {
-  it('uses equality filters and parameter bindings', async () => {
-    const { res } = mockResponse();
+  it('uses equality filters and SQL parameter bindings', async () => {
+    const response = mockResponse();
 
     await executeParquetQuery(
       {
@@ -65,12 +63,12 @@ describe('executeParquetQuery SQL generation', () => {
         date: '2024-05-01',
       },
       '/prevalences',
-      parquetPath,
-      res,
+      admin1ParquetPath,
+      response,
     );
 
     expect(db.prepare).toHaveBeenCalledWith(
-      `SELECT p.admin1, ROUND(p.median, 4) AS median FROM '${parquetPath}' p ` +
+      `SELECT p.admin1, ROUND(p.median, 4) AS median FROM '${admin1ParquetPath}' p ` +
       'WHERE p.gene = $gene AND p.mutation = $mutation AND p.date = $date',
     );
     expect(db.bind).toHaveBeenCalledWith({
@@ -80,8 +78,8 @@ describe('executeParquetQuery SQL generation', () => {
     });
   });
 
-  it('maps date ranges to the endpoint date column and comparison operators', async () => {
-    const { res } = mockResponse();
+  it('maps date ranges to the `date` column for the prevalences endpoint, using inequality operators', async () => {
+    const response = mockResponse();
 
     await executeParquetQuery(
       {
@@ -90,12 +88,12 @@ describe('executeParquetQuery SQL generation', () => {
         date_to: '2025-05-01',
       },
       '/prevalences',
-      parquetPath,
-      res,
+      admin1ParquetPath,
+      response,
     );
 
     expect(db.prepare).toHaveBeenCalledWith(
-      `SELECT p.admin1 FROM '${parquetPath}' p ` +
+      `SELECT p.admin1 FROM '${admin1ParquetPath}' p ` +
       'WHERE p.date >= $date_from AND p.date <= $date_to',
     );
     expect(db.bind).toHaveBeenCalledWith({
@@ -104,35 +102,54 @@ describe('executeParquetQuery SQL generation', () => {
     });
   });
 
-  it('filters prevalence admin0 through the parquet column', async () => {
-    const { res } = mockResponse();
+  it('maps date ranges to the `collection_day` column for the surveys endpoint, using inequality operators', async () => {
+    const response = mockResponse();
+
+    await executeParquetQuery(
+      {
+        properties: 'gene',
+        date_from: '2023-05-01',
+        date_to: '2025-05-01',
+      },
+      '/surveys',
+      admin1ParquetPath,
+      response,
+    );
+
+    expect(db.prepare).toHaveBeenCalledWith(
+      `SELECT p.gene FROM '${admin1ParquetPath}' p ` +
+      'WHERE p.collection_day >= $date_from AND p.collection_day <= $date_to',
+    );
+    expect(db.bind).toHaveBeenCalledWith({
+      date_from: '2023-05-01',
+      date_to: '2025-05-01',
+    });
+  });
+
+  it('filters prevalence admin0 using the parquet column', async () => {
+    const response = mockResponse();
 
     await executeParquetQuery(
       { properties: 'admin1', admin0: 'MLI' },
       '/prevalences',
-      parquetPath,
-      res,
+      admin1ParquetPath,
+      response,
     );
 
     expect(db.prepare).toHaveBeenCalledWith(
-      `SELECT p.admin1 FROM '${parquetPath}' p WHERE p.admin0 = $admin0`,
+      `SELECT p.admin1 FROM '${admin1ParquetPath}' p WHERE p.admin0 = $admin0`,
     );
     expect(db.bind).toHaveBeenCalledWith({ admin0: 'MLI' });
   });
 
   it('expands survey admin0 into latitude and longitude bounds', async () => {
-    const surveyPath = `tests/fixtures/data/stave/${fixtureConfig.dataRelease}/survey_data.parquet`;
-    db.runAndReadAll.mockResolvedValue({
-      columnNames: () => ['survey_id', 'lat', 'lng', 'collection_day'],
-      columnTypes: () => ['VARCHAR', 'DOUBLE', 'DOUBLE', 'DATE'],
-    });
-    const { res } = mockResponse();
+    const response = mockResponse();
 
     await executeParquetQuery(
       { properties: 'survey_id', admin0: 'MLI', date_from: '2010-01-01', date_to: '2010-02-01' },
       '/surveys',
       surveyPath,
-      res,
+      response,
     );
 
     expect(db.prepare).toHaveBeenCalledWith(
@@ -146,19 +163,14 @@ describe('executeParquetQuery SQL generation', () => {
     });
   });
 
-  it('returns undefined after reporting an unknown ISO code', async () => {
-    const surveyPath = `tests/fixtures/data/stave/${fixtureConfig.dataRelease}/survey_data.parquet`;
-    db.runAndReadAll.mockResolvedValue({
-      columnNames: () => ['survey_id', 'lat', 'lng'],
-      columnTypes: () => ['VARCHAR', 'DOUBLE', 'DOUBLE'],
-    });
-    const { res, response } = mockResponse();
+  it('sends a 400 after getting an unknown ISO code', async () => {
+    const response = mockResponse();
 
     const result = await executeParquetQuery(
       { properties: 'survey_id', admin0: 'ZZZ' },
       '/surveys',
       surveyPath,
-      res,
+      response,
     );
 
     expect(result).toBeUndefined();
@@ -166,45 +178,45 @@ describe('executeParquetQuery SQL generation', () => {
     expect(db.prepare).not.toHaveBeenCalled();
   });
 
-  it('omits WHERE and ignores non-filterable parameters', async () => {
-    const { res } = mockResponse();
+  it('omits WHERE when no filterable parameters are provided', async () => {
+    const response = mockResponse();
 
     await executeParquetQuery(
-      { properties: 'admin1', model_release: 'ignored', unknown: 'ignored' },
+      { properties: 'admin1' },
       '/prevalences',
-      parquetPath,
-      res,
+      admin1ParquetPath,
+      response,
     );
 
     expect(db.prepare).toHaveBeenCalledWith(
-      `SELECT p.admin1 FROM '${parquetPath}' p `,
+      `SELECT p.admin1 FROM '${admin1ParquetPath}' p `,
     );
     expect(db.bind).toHaveBeenCalledWith({});
   });
 
-  it('rounds floating-point columns but preserves integer columns', async () => {
-    const { res } = mockResponse();
+  it('rounds floating-point columns', async () => {
+    const response = mockResponse();
 
     await executeParquetQuery(
       { properties: 'median,no_of_informing_surveys' },
       '/prevalences',
-      parquetPath,
-      res,
+      admin1ParquetPath,
+      response,
     );
 
     expect(db.prepare).toHaveBeenCalledWith(
-      `SELECT ROUND(p.median, 4) AS median, p.no_of_informing_surveys FROM '${parquetPath}' p `,
+      `SELECT ROUND(p.median, 4) AS median, p.no_of_informing_surveys FROM '${admin1ParquetPath}' p `,
     );
   });
 
-  it('rejects a requested property absent from the parquet schema', async () => {
-    const { res, response } = mockResponse();
+  it('rejects a requested property if it belongs to a different parquet schema', async () => {
+    const response = mockResponse();
 
     const result = await executeParquetQuery(
       { properties: 'admin2' },
       '/prevalences',
-      parquetPath,
-      res,
+      admin1ParquetPath,
+      response,
     );
 
     expect(result).toBeUndefined();

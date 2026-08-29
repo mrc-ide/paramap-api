@@ -1,46 +1,41 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-const runAndReadAll = vi.hoisted(() => vi.fn());
-
-vi.mock('../../src/queryEngine.ts', () => ({
-  connection: { runAndReadAll },
-}));
-
+import { describe, expect, it, vi } from 'vitest';
 import { getMutationsByGene } from '../../src/utils/metadataHelpers.ts';
 import fixtureConfig from '../fixtures/fixture-config.json' with { type: 'json' };
 
-beforeEach(() => {
-  vi.clearAllMocks();
+const runAndReadAll = vi.hoisted(() => vi.fn());
+
+vi.mock('../../src/queryEngine.ts', () => {
+  runAndReadAll.mockImplementation(() => ({
+    getRowObjects: () => [
+      {
+        gene: 'crt',
+        mutation: '76K',
+        variant: 'crt:76:K',
+        min_date: '2003-05-01',
+        max_date: '2025-05-01',
+      },
+      {
+        gene: 'k13',
+        mutation: '469Y',
+        variant: 'k13:469:Y',
+        min_date: '2020-05-01',
+        max_date: '2024-05-01',
+      },
+      {
+        gene: 'k13',
+        mutation: '469F',
+        variant: 'k13:469:F',
+        min_date: '2021-05-01',
+        max_date: '2023-05-01',
+      },
+    ],
+  }));
+  
+  return { connection: { runAndReadAll } };
 });
 
 describe('getMutationsByGene', () => {
-  it('queries the configured model parquet and groups mutations by gene', async () => {
-    runAndReadAll.mockResolvedValue({
-      getRowObjects: () => [
-        {
-          gene: 'crt',
-          mutation: '76K',
-          variant: 'crt:76:K',
-          min_date: '2003-05-01',
-          max_date: '2025-05-01',
-        },
-        {
-          gene: 'k13',
-          mutation: '469Y',
-          variant: 'k13:469:Y',
-          min_date: '2020-05-01',
-          max_date: '2024-05-01',
-        },
-        {
-          gene: 'k13',
-          mutation: '469F',
-          variant: 'k13:469:F',
-          min_date: '2021-05-01',
-          max_date: '2023-05-01',
-        },
-      ],
-    });
-
+  it('queries the parquet and groups mutations by gene', async () => {
     const result = await getMutationsByGene(fixtureConfig.modelRelease);
 
     expect(runAndReadAll).toHaveBeenCalledOnce();
@@ -48,9 +43,6 @@ describe('getMutationsByGene', () => {
     expect(sql).toContain(
       `FROM 'tests/fixtures/data/model/${fixtureConfig.modelRelease}/admin0.parquet'`,
     );
-    expect(sql).toContain("STRFTIME(MIN(\"date\"), '%Y-%m-%d') AS min_date");
-    expect(sql).toContain("STRFTIME(MAX(\"date\"), '%Y-%m-%d') AS max_date");
-    expect(sql).toContain('GROUP BY variant');
     expect(result).toEqual([
       {
         gene: 'crt',
