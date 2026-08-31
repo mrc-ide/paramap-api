@@ -10,7 +10,7 @@
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/server.js",
     "dev": "nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/server.ts",
-    "lint": "eslint 'src/**/*.ts'",
+    "lint": "eslint 'src/**/*.ts' 'tests/**/*.ts' 'vitest.config.ts'",
     "docker-build-image": "docker build -t paramap-api .",
     "docker-run": "docker run -e PORT=3000 -p 3000:3000 paramap-api"
   },
