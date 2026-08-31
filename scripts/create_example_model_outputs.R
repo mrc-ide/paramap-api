@@ -119,10 +119,6 @@ admin0_regions <- admin0_df |>
   filter(id %in% subsaharan_africa_iso) |>
   transmute(admin0 = id)
 
-if (nrow(admin0_regions) == 0) {
-  cli_abort("No sub-Saharan African admin0 regions found from grout.")
-}
-
 fetch_country_level <- function(level, iso3_code) {
   url <- sprintf("https://mrcdata.dide.ic.ac.uk/grout/region-metadata/gadm41/admin%d/%s", level, iso3_code)
   response <- fetch_json(url)
