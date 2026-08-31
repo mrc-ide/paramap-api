@@ -3,7 +3,6 @@ import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import config from './config/config.ts';
 import { errorHandler } from './middlewares/errorHandler.ts';
-// import { requestTimingLogger } from './middlewares/requestTimingLogger.ts';
 import { PREVALENCE_COLUMNS, SURVEY_COLUMNS, globalBounds, modelVersions } from './constants.ts';
 import type { QueryParams } from './types.ts';
 import { validateAdminLevel, validateDataRelease, validateDateIsFirstOfMonth, validateDateParams, validateModelRelease, validateRequiredQueryParams } from './utils/validators.ts';
@@ -12,10 +11,7 @@ import { getMutationsByGene } from './utils/metadataHelpers.ts';
 
 export const createApp = (): Express => {
   const app: Express = express();
-  // app.use(requestTimingLogger);
 
-  // Can be called with or without a model_release parameter.
-  // If no model_release parameter, defaults to latest.
   app.get('/metadata', async (req: Request, res: Response) => {
     const modelVersion = (req.query['model_release'] ?? config.latestModelVersion) as string;
     if (!validateModelRelease(modelVersion, res)) return;
