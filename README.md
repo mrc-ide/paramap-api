@@ -169,13 +169,7 @@ Rscript scripts/create_example_model_outputs.R
 ts-node --esm scripts/fetch_admin0_region_metadata.ts
 ```
 
-4. Optionally run tests
-
-```sh
-npm run test
-```
-
-5. Start the app
+4. Start the app
 
 ```sh
 npm run dev

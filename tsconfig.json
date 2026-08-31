@@ -10,7 +10,7 @@
     "strict": true,
     "skipLibCheck": true
   },
-  "include": ["src/**/*", "tests/**/*", "scripts/**/*"],
+  "include": ["src/**/*", "scripts/**/*"],
   "exclude": ["node_modules"],
   "types": ["node"]
 }
