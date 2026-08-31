@@ -12,9 +12,7 @@ const port = process.env.PORT;
 
 const config: Config = {
   port: port ? Number(port) : undefined,
-  dataDir: process.env.NODE_ENV === 'test'
-    ? 'tests/fixtures/data'
-    : 'data',
+  dataDir: 'data',
   latestModelVersion: '2026.05.08',
 };
 
