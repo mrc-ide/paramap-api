@@ -201,7 +201,7 @@ As mentioned above, early development has used example model outputs generated b
 
 As things stand now, a file `./data/model/<version>/metadata.json` must be manually created, to document the dependency of the model outputs (example or real) on a particular STAVE release.
 
-## Data details
+## Data schema details
 
 ### Genes and mutations
 
