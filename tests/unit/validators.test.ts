@@ -65,7 +65,7 @@ describe('validateRequestedProperties', () => {
     const { res } = mockReqRes({});
 
     expect(
-      validateRequestedProperties({ properties: '' }, ['admin1', 'median'], dbTypes, res)
+      validateRequestedProperties([], ['admin1', 'median'], dbTypes, res)
     ).toBe(false);
     expect(res.status).toHaveBeenCalledWith(400);
   });
@@ -74,7 +74,7 @@ describe('validateRequestedProperties', () => {
     const { res, } = mockReqRes({});
 
     expect(
-      validateRequestedProperties({ properties: 'admin1,median' }, ['median'], dbTypes, res)
+      validateRequestedProperties(['admin1', 'median'], ['median'], dbTypes, res)
     ).toBe(false);
     expect(res.send).toHaveBeenCalledWith({ error: 'Invalid property requested: admin1' });
     expect(res.status).toHaveBeenCalledWith(400);
@@ -84,7 +84,7 @@ describe('validateRequestedProperties', () => {
     const { res, } = mockReqRes({});
 
     expect(
-      validateRequestedProperties({ properties: 'median' }, ['median'], {}, res)
+      validateRequestedProperties(['median'], ['median'], {}, res)
     ).toBe(false);
     expect(res.send).toHaveBeenCalledWith({ error: 'Invalid property requested: median' });
     expect(res.status).toHaveBeenCalledWith(400);
@@ -94,7 +94,7 @@ describe('validateRequestedProperties', () => {
     const { res } = mockReqRes({});
 
     expect(
-      validateRequestedProperties({ properties: 'admin1,median' }, ['admin1', 'median'], dbTypes, res)
+      validateRequestedProperties(['admin1', 'median'], ['admin1', 'median'], dbTypes, res)
     ).toBe(true);
   });
 });
@@ -131,7 +131,17 @@ describe('validateDateParams', () => {
 
     expect(validateDateParams(req, res)).toBe(false);
     expect(res.send).toHaveBeenCalledWith({
-      error: `Invalid date format for parameter '${parameter}'. Expected YYYY-MM-DD.`,
+      error: `Invalid date for parameter '${parameter}'. Expected YYYY-MM-DD.`,
+    });
+    expect(res.status).toHaveBeenCalledWith(400);
+  });
+
+  it.each(['date', 'date_from', 'date_to'])('rejects an invalid date for %s', (parameter) => {
+    const { req, res } = mockReqRes({ [parameter]: '2026-99-99' });
+
+    expect(validateDateParams(req, res)).toBe(false);
+    expect(res.send).toHaveBeenCalledWith({
+      error: `Invalid date for parameter '${parameter}'. Expected YYYY-MM-DD.`,
     });
     expect(res.status).toHaveBeenCalledWith(400);
   });
