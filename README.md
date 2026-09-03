@@ -13,7 +13,7 @@ There are three endpoints, all read-only, which provide customisable slices of t
 
 The `/surveys` and `/prevalences` endpoints correspond to the two kinds of data referred to above. They share a common request format* whereby the query parameter `properties` specifies which parquet columns should be returned per entry, while several other query parameters are used to filter the data. To a first approximation, this is translated into an SQL query of the form `SELECT <properties> FROM <parquet file> WHERE <filters>`, though not all filters are expressible as `WHERE` clauses (e.g. they may instead entail reading a different source parquet file). By the use of these query parameters, we enable clients to flexibly thin the response sizes to precisely those rows and columns that are required.
 
-*This is controlled by the const `endpointConfigs` in `dataHelpers.ts`.
+*This is controlled by the const `endpointConfigs` in `src/utils/endpoints.ts`. 
 
 1. /metadata
 
