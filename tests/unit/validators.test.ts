@@ -131,7 +131,17 @@ describe('validateDateParams', () => {
 
     expect(validateDateParams(req, res)).toBe(false);
     expect(res.send).toHaveBeenCalledWith({
-      error: `Invalid date format for parameter '${parameter}'. Expected YYYY-MM-DD.`,
+      error: `Invalid date for parameter '${parameter}'. Expected YYYY-MM-DD.`,
+    });
+    expect(res.status).toHaveBeenCalledWith(400);
+  });
+
+  it.each(['date', 'date_from', 'date_to'])('rejects an invalid date for %s', (parameter) => {
+    const { req, res } = mockReqRes({ [parameter]: '2026-99-99' });
+
+    expect(validateDateParams(req, res)).toBe(false);
+    expect(res.send).toHaveBeenCalledWith({
+      error: `Invalid date for parameter '${parameter}'. Expected YYYY-MM-DD.`,
     });
     expect(res.status).toHaveBeenCalledWith(400);
   });
