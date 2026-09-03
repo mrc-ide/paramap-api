@@ -1,7 +1,7 @@
 import { type Request, type Response } from 'express';
 import { modelVersions, dataVersions, adminLevels } from '../constants.ts';
 import type { QueryParams, Column } from '../types.ts';
-import { endpointConfigs, type Endpoint } from './data.ts';
+import { endpointConfigs, type Endpoint } from './endpoints.ts';
 
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
