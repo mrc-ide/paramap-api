@@ -64,8 +64,10 @@ export const validateDateParams = (req: Request, res: Response): boolean => {
   const queryParams = req.query as Record<string, string | undefined>;
 
   for (const param of ["date", "date_from", "date_to"]) {
-    if (queryParams[param] && !dateRegex.test(queryParams[param]!)) {
-      res.status(400).send({ error: `Invalid date format for parameter '${param}'. Expected YYYY-MM-DD.` });
+    const value = queryParams[param];
+    if (!value) continue;
+    if (!dateRegex.test(value) || Number.isNaN(Date.parse(value))) {
+      res.status(400).send({ error: `Invalid date for parameter '${param}'. Expected YYYY-MM-DD.` });
       return false;
     }
   }
