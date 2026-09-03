@@ -1,14 +1,16 @@
 import { DuckDBInstance } from '@duckdb/node-api';
 
-// On creating with in-memory database: https://duckdb.org/docs/current/clients/node_neo/overview#create-instance
-// DuckDB can operate in both persistent mode, where the data is saved to disk, and in in-memory mode, where the entire dataset is stored in the main memory.
-// Both persistent and in-memory databases use spilling to disk to facilitate larger-than-memory workloads (i.e., out-of-core-processing).
-// In in-memory mode, no data is persisted to disk, therefore, all data is lost when the process finishes.
+// Create DuckDB instance in persistent mode so that we can
+// use the READ_ONLY setting (not available in in-memory mode).
 
-// We can do partial resolution of queries using streaming, see https://duckdb.org/docs/current/clients/node_neo
+// Both persistent and in-memory mode use spilling to disk to facilitate
+// larger-than-memory workloads (i.e., out-of-core-processing).
 
-const instance = await DuckDBInstance.create(':memory:', {
+// 'dummy.db' will not be used, but it is required to pass in
+// a db file name when creating an instance in persistent mode.
+const instance = await DuckDBInstance.create('dummy.db', {
   parquet_metadata_cache: "true",
+  access_mode: 'READ_ONLY',
 });
 
 export const connection = await instance.connect();
