@@ -47,14 +47,10 @@ export const executeParquetQuery = async (
   const sql = `SELECT ${selectColumns} FROM '${parquetPath}' ${tableName} ${whereClause}`;
   const statement = await connection.prepare(sql);
 
-  console.log(sql);
-
   statement.bind(bindings);
   const result = await statement.runAndReadAll();
   return result;
 };
-
-// Make parquet files read-only?
 
 const buildSelectColumns = async (
   parquetPath: string,
