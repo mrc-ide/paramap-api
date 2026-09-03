@@ -1,6 +1,6 @@
 import { type Request, type Response } from 'express';
 import { modelVersions, dataVersions, adminLevels } from '../constants.ts';
-import type { QueryParams, Column } from '../types.ts';
+import type { Column } from '../types.ts';
 import { endpointConfigs, type Endpoint } from './endpoints.ts';
 
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
@@ -30,7 +30,7 @@ export const validateRequestedProperties = (
   }
   const availableColumns = Object.keys(parquetColumns);
   const invalid = requestedProperties.find((p) => {
-    return !requestableProperties.includes(p) || !availableColumns.includes(p);
+    return !(requestableProperties as string[]).includes(p) || !availableColumns.includes(p);
   });
   if (invalid) {
     res.status(400).send({ error: `Invalid property requested: ${invalid}` });
