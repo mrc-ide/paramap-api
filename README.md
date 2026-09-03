@@ -3,7 +3,7 @@
 This repo contains an API serving two kinds of data to be rendered by PARAmap:
 
 1) data points of surveys of genetic markers, which come to us stored in the [STAVE](https://mrc-ide.github.io/STAVE/index.html) schema;
-2) and a surface of model outputs imputed from the survey data, which are essentially interpolated prevalences of the difference genetic markers per region. These are provided at three levels of granularity: admin levels 0, 1, and 2.
+2) and a surface of model outputs imputed from the survey data, which are essentially interpolated prevalences of the different genetic markers per region. These are provided at three levels of granularity: admin levels 0, 1, and 2.
 
 In general, when new releases of model outputs or of survey data are created, this is treated additively: that is, we will intentionally keep around older versions. These may be requested using query parameters `model_release`/`data_release`. Each model release has a dependency on a specific data release. 
 
@@ -13,7 +13,7 @@ There are three endpoints, all read-only, which provide customisable slices of t
 
 The `/surveys` and `/prevalences` endpoints correspond to the two kinds of data referred to above. They share a common request format* whereby the query parameter `properties` specifies which parquet columns should be returned per entry, while several other query parameters are used to filter the data. To a first approximation, this is translated into an SQL query of the form `SELECT <properties> FROM <parquet file> WHERE <filters>`, though not all filters are expressible as `WHERE` clauses (e.g. they may instead entail reading a different source parquet file). By the use of these query parameters, we enable clients to flexibly thin the response sizes to precisely those rows and columns that are required.
 
-*This is controlled by the const `endpointConfigs` in `dataHelpers.ts`.
+*This is controlled by the const `endpointConfigs` in `src/utils/endpoints.ts`. 
 
 1. /metadata
 
@@ -31,7 +31,7 @@ request:
 `GET /metadata`
 
 response:
-```json
+```jsonc
 {
   "model_releases": ["v1", "v2"],
   "prevalences": {
@@ -104,7 +104,7 @@ GET /surveys?
 ```
 
 response:
-```json
+```jsonc
 [
   {
     "survey_id": "Dama_2017_Bamako_2014",
@@ -136,7 +136,7 @@ GET /prevalences?
 ```
 
 response:
-```json
+```jsonc
 [
   {
     "admin2": "MLI.1.1_1",

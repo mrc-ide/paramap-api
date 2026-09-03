@@ -1,6 +1,6 @@
 import { type Request, type Response } from 'express';
 import { modelVersions, dataVersions, adminLevels } from '../constants.ts';
-import type { QueryParams, Column } from '../types.ts';
+import type { Column } from '../types.ts';
 import { endpointConfigs, type Endpoint } from './endpoints.ts';
 
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
@@ -19,22 +19,18 @@ export const validateRequiredQueryParams = (
 };
 
 export const validateRequestedProperties = (
-  queryParams: QueryParams,
+  requestedProperties: string[],
   requestableProperties: Column[], // provided by endpoint config
   parquetColumns: { [K in Column]?: string },
   res: Response,
 ): boolean => {
-  const requestedProperties = queryParams.properties
-    ?.split(',')
-    .map(p => p as Column)
-    .filter(p => !!p) ?? [];
   if (requestedProperties.length === 0) {
     res.status(400).send({ error: "At least one property must be requested." });
     return false;
   }
   const availableColumns = Object.keys(parquetColumns);
   const invalid = requestedProperties.find((p) => {
-    return !requestableProperties.includes(p) || !availableColumns.includes(p);
+    return !(requestableProperties as string[]).includes(p) || !availableColumns.includes(p);
   });
   if (invalid) {
     res.status(400).send({ error: `Invalid property requested: ${invalid}` });
@@ -68,8 +64,10 @@ export const validateDateParams = (req: Request, res: Response): boolean => {
   const queryParams = req.query as Record<string, string | undefined>;
 
   for (const param of ["date", "date_from", "date_to"]) {
-    if (queryParams[param] && !dateRegex.test(queryParams[param]!)) {
-      res.status(400).send({ error: `Invalid date format for parameter '${param}'. Expected YYYY-MM-DD.` });
+    const value = queryParams[param];
+    if (!value) continue;
+    if (!dateRegex.test(value) || Number.isNaN(Date.parse(value))) {
+      res.status(400).send({ error: `Invalid date for parameter '${param}'. Expected YYYY-MM-DD.` });
       return false;
     }
   }

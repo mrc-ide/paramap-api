@@ -36,9 +36,15 @@ export const executeParquetQuery = async (
   const config = endpointConfigs[path];
 
   const parquetColumns = await inspectColumns(parquetPath);
-  if (!validateRequestedProperties(queryParams, config.requestableProperties, parquetColumns, res)) return;
+  const properties = queryParams.properties
+    ?.split(',')
+    .map(p => p as Column)
+    .filter(p => !!p) ?? [];
 
-  const properties = queryParams.properties?.split(',').map(p => p as Column) ?? [];
+  if (!validateRequestedProperties(properties, config.requestableProperties, parquetColumns, res)) {
+    return;
+  };
+
   const selectColumns = await buildSelectColumns(parquetPath, properties);
   const where = buildWhereClause(queryParams, config, res);
   if (!where) return;
