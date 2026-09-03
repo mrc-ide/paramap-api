@@ -2,7 +2,7 @@
 
 import type { Response } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { executeParquetQuery } from '../../src/utils/dataHelpers.ts';
+import { executeParquetQuery } from '../../src/utils/data.ts';
 import fixtureConfig from '../fixtures/fixture-config.json' with { type: 'json' };
 
 const db = vi.hoisted(() => ({
