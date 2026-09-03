@@ -11,6 +11,14 @@ import {
 } from '../../src/utils/validators.ts';
 import fixtureConfig from '../fixtures/fixture-config.json' with { type: 'json' };
 
+vi.mock('../../src/utils/endpoints.ts', () => ({
+  endpointConfigs: {
+    '/test': {
+      requiredParams: ['gene', 'mutation', 'properties'],
+    },
+  },
+}));
+
 const mockReqRes = (query: Record<string, string | undefined>) => {
   const response = {
     status: vi.fn(),
@@ -18,7 +26,7 @@ const mockReqRes = (query: Record<string, string | undefined>) => {
   };
   response.status.mockReturnValue(response);
   return {
-    req: { query } as unknown as Request,
+    req: { path: '/test', query } as unknown as Request,
     res: response as unknown as Response,
   };
 };
@@ -28,7 +36,7 @@ describe('validateRequiredQueryParams', () => {
     const { req, res } = mockReqRes({ gene: 'crt', mutation: '', properties: undefined });
 
     expect(
-      validateRequiredQueryParams(req, res, ['gene', 'mutation', 'properties'])
+      validateRequiredQueryParams(req, res)
     ).toBe(false);
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.send).toHaveBeenCalledWith({
@@ -37,10 +45,14 @@ describe('validateRequiredQueryParams', () => {
   });
 
   it('accepts a request containing every required parameter', () => {
-    const { req, res, } = mockReqRes({ gene: 'crt', mutation: '76K' });
+    const { req, res, } = mockReqRes({
+      gene: 'crt',
+      mutation: '76K',
+      properties: 'gene',
+    });
 
     expect(
-      validateRequiredQueryParams(req, res, ['gene', 'mutation'])
+      validateRequiredQueryParams(req, res)
     ).toBe(true);
     expect(res.send).not.toHaveBeenCalled();
   });
