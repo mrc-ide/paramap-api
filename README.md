@@ -31,7 +31,7 @@ request:
 `GET /metadata`
 
 response:
-```json
+```jsonc
 {
   "model_releases": ["v1", "v2"],
   "prevalences": {
@@ -104,7 +104,7 @@ GET /surveys?
 ```
 
 response:
-```json
+```jsonc
 [
   {
     "survey_id": "Dama_2017_Bamako_2014",
@@ -136,7 +136,7 @@ GET /prevalences?
 ```
 
 response:
-```json
+```jsonc
 [
   {
     "admin2": "MLI.1.1_1",
