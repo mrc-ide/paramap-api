@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { getMutationsByGene } from '../../src/utils/metadataHelpers.ts';
+import { getMutationsByGene } from '../../src/utils/metadata.ts';
 import fixtureConfig from '../fixtures/fixture-config.json' with { type: 'json' };
 
 const runAndReadAll = vi.hoisted(() => vi.fn());
