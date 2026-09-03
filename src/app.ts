@@ -3,11 +3,12 @@ import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import config from './config/config.ts';
 import { errorHandler } from './middlewares/errorHandler.ts';
-import { PREVALENCE_COLUMNS, SURVEY_COLUMNS, globalBounds, modelVersions } from './constants.ts';
+import { globalBounds, modelVersions } from './constants.ts';
 import type { QueryParams } from './types.ts';
-import { validateAdminLevel, validateDataRelease, validateDateIsFirstOfMonth, validateDateParams, validateModelRelease, validateRequiredQueryParams } from './utils/validators.ts';
-import { executeParquetQuery } from './utils/dataHelpers.ts';
-import { getMutationsByGene } from './utils/metadataHelpers.ts';
+import { validateModelRelease } from './utils/validators.ts';
+import { validateSurveysRequest, validatePrevalencesRequest } from './utils/endpoints.ts';
+import { executeParquetQuery } from './utils/data.ts';
+import { getMutationsByGene } from './utils/metadata.ts';
 
 export const createApp = (): Express => {
   const app: Express = express();
@@ -33,16 +34,7 @@ export const createApp = (): Express => {
   });
 
   app.get('/surveys', async (req: Request, res: Response) => {
-    const requiredParams = [
-      "data_release",
-      "properties",
-      SURVEY_COLUMNS.GENE,
-      SURVEY_COLUMNS.MUTATION,
-    ];
-    if (!validateRequiredQueryParams(req, res, requiredParams)
-      || !validateDataRelease(req, res)
-      || !validateDateParams(req, res)
-    ) return;
+    if (!validateSurveysRequest(req, res)) return;
 
     const dataVersion = req.query['data_release'] as string;
     const surveyDataParquet = join(config.dataDir, "stave", dataVersion, "survey_data.parquet");
@@ -54,22 +46,9 @@ export const createApp = (): Express => {
   });
 
   app.get('/prevalences', async (req: Request, res: Response) => {
-    const queryParams = req.query as QueryParams;
-    // TODO: consider allowing this endpoint to have a default model release
+    if (!validatePrevalencesRequest(req, res)) return;
 
-    const requiredParams = [
-      "model_release",
-      "admin_level",
-      "properties",
-      PREVALENCE_COLUMNS.GENE,
-      PREVALENCE_COLUMNS.MUTATION,
-    ];
-    if (!validateRequiredQueryParams(req, res, requiredParams)
-      || !validateModelRelease(queryParams.model_release!, res)
-      || !validateDateParams(req, res)
-      || !validateDateIsFirstOfMonth(req, res)
-      || !validateAdminLevel(req, res)
-    ) return;
+    const queryParams = req.query as QueryParams;
 
     // Client may request results at any of the available levels of granularity.
     const adminLevel = queryParams.admin_level as string;

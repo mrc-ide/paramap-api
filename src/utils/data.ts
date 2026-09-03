@@ -6,7 +6,8 @@ import config from '../config/config.ts';
 import type { Column, QueryParams } from '../types.ts';
 import { validateRequestedProperties } from './validators.ts';
 import type { DuckDBResultReader } from '@duckdb/node-api';
-import { PREVALENCE_COLUMNS, SURVEY_COLUMNS } from '../constants.ts';
+import { SURVEY_COLUMNS } from '../constants.ts';
+import { endpointConfigs, type Endpoint, type EndpointConfig } from './endpoints.ts';
 
 interface Admin0RegionMetadata {
   id: string;
@@ -24,41 +25,6 @@ const admin0RegionMetadata = JSON.parse(
 const tableName = "p";
 
 const roundableColumnTypes = ["DOUBLE", "FLOAT", "DECIMAL"];
-
-// column mode: filter on the admin0 column directly.
-// bounds mode: translate the admin0 ISO code into lat/lng bounding-boxes.
-// Survey data does not come with region metadata, so we filter it by lat/lng.
-const Admin0Mode = {
-  BOUNDS: "bounds",
-  COLUMN: "column",
-} as const;
-type Admin0Mode = typeof Admin0Mode[keyof typeof Admin0Mode];
-
-type Endpoint = "/surveys" | "/prevalences";
-interface EndpointConfig<T extends Column = Column> {
-  // An allow-list of properties that clients may request as columns.
-  requestableProperties: T[];
-  // Query parameters that may be used to filter the rows.
-  filterableParams: string[];
-  // The column to filter on for requests that scope by date_from/date_to.
-  dateColumn: T;
-  admin0Mode: Admin0Mode;
-}
-
-const endpointConfigs: Record<Endpoint, EndpointConfig> = {
-  "/surveys": {
-    requestableProperties: Object.values(SURVEY_COLUMNS),
-    filterableParams: ["admin0", "survey_id", "date_from", "date_to", "gene", "mutation"],
-    dateColumn: "collection_day",
-    admin0Mode: "bounds",
-  },
-  "/prevalences": {
-    requestableProperties: Object.values(PREVALENCE_COLUMNS),
-    filterableParams: ["admin0", "admin1", "admin2", "gene", "mutation", "date", "date_from", "date_to"],
-    dateColumn: "date",
-    admin0Mode: "column",
-  },
-} as const;
 
 // Build and run an SQL query out of the requested properties and filters.
 export const executeParquetQuery = async (
@@ -80,10 +46,15 @@ export const executeParquetQuery = async (
   const { whereClause, bindings } = where;
   const sql = `SELECT ${selectColumns} FROM '${parquetPath}' ${tableName} ${whereClause}`;
   const statement = await connection.prepare(sql);
+
+  console.log(sql);
+
   statement.bind(bindings);
   const result = await statement.runAndReadAll();
   return result;
 };
+
+// Make parquet files read-only?
 
 const buildSelectColumns = async (
   parquetPath: string,

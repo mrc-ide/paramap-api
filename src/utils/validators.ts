@@ -1,15 +1,16 @@
 import { type Request, type Response } from 'express';
 import { modelVersions, dataVersions, adminLevels } from '../constants.ts';
 import type { QueryParams, Column } from '../types.ts';
+import { endpointConfigs, type Endpoint } from './data.ts';
 
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
 export const validateRequiredQueryParams = (
   req: Request,
   res: Response,
-  requiredParams: string[]
 ): boolean => {
-  const missingParams = requiredParams.filter(param => !req.query[param]);
+  const path = req.path as Endpoint;
+  const missingParams = endpointConfigs[path].requiredParams.filter(param => !req.query[param]);
   if (missingParams.length > 0) {
     res.status(400).send({ error: `Missing required query parameters: ${missingParams.join(', ')}` });
     return false;
