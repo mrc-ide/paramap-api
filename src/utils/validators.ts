@@ -19,15 +19,11 @@ export const validateRequiredQueryParams = (
 };
 
 export const validateRequestedProperties = (
-  queryParams: QueryParams,
+  requestedProperties: string[],
   requestableProperties: Column[], // provided by endpoint config
   parquetColumns: { [K in Column]?: string },
   res: Response,
 ): boolean => {
-  const requestedProperties = queryParams.properties
-    ?.split(',')
-    .map(p => p as Column)
-    .filter(p => !!p) ?? [];
   if (requestedProperties.length === 0) {
     res.status(400).send({ error: "At least one property must be requested." });
     return false;
