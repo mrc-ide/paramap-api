@@ -22,15 +22,11 @@ describe('GET /prevalences', () => {
       });
 
     expect(response.status).toBe(200);
-    // Expect all admin1 values to be unique
-    const uniqueAdmin0 = new Set(response.body.admin0);
-    expect(uniqueAdmin0.size).toBe(2);
-    expect(response.body.admin0).toEqual(['ETH', 'MLI']);
-    expect(response.body.median).toHaveLength(2);
-    expect(response.body.median).toEqual(expect.arrayContaining([
+    expect(response.body.admin0).toStrictEqual(['ETH', 'MLI']);
+    expect(response.body.median).toStrictEqual([
       0.2031,
       0.2870,
-    ]));
+    ]);
   });
 
   it('returns results within a range of dates', async () => {

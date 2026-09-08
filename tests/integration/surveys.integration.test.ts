@@ -23,8 +23,7 @@ describe('GET /surveys', () => {
       });
 
     expect(response.status).toBe(200);
-    expect(response.body).toHaveLength(2);
-    expect(response.body).toEqual(expect.arrayContaining([
+    expect(response.body).toStrictEqual([
       {
         survey_id: 's0006_kisii_period2',
         lat: -0.6805,
@@ -39,7 +38,7 @@ describe('GET /surveys', () => {
         collection_day: '2010-01-01',
         denominator: 72,
       },
-    ]));
+    ]);
   });
 
   it('returns additional surveys for a wide lazy-loading range', async () => {
