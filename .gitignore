@@ -3,3 +3,4 @@ node_modules/
 dist/
 data/admin0-region-metadata.json
 data/**/*.parquet
+coverage/

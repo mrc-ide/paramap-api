@@ -4,5 +4,11 @@ export default defineConfig({
   test: {
     environment: 'node',
     restoreMocks: true,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html', 'lcov'],
+      include: ['src/**/*.ts'],
+      exclude: ['src/server.ts'],
+    },
   },
 });
