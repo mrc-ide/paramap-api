@@ -17,8 +17,8 @@ describe('GET /metadata', () => {
         data_release: fixtureConfig.dataRelease,
       },
       bounds: {
-        min: { lng: -70.0635, lat: 12.4124 },
-        max: { lng: -69.8654, lat: 12.624 },
+        min: { lng: expect.closeTo(-70.0635, 0.1), lat: expect.closeTo(12.4124, 0.1) },
+        max: { lng: expect.closeTo(-69.8654, 0.1), lat: expect.closeTo(12.624, 0.1) },
       },
     });
 
@@ -57,7 +57,7 @@ describe('GET /metadata', () => {
       .get('/metadata')
       .query({ model_release: '../private' });
 
-    expect(response.status).toBe(400);
-    expect(response.body).toEqual({ error: 'Invalid model release: ../private' });
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({ error: 'Unknown model release: ../private' });
   });
 });

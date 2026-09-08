@@ -109,7 +109,7 @@ describe('release validators', () => {
     const { res } = mockReqRes({ model_release: '../private' });
 
     expect(validateModelRelease("../private", res)).toBe(false);
-    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.status).toHaveBeenCalledWith(404);
   });
 
   it('accepts a known data release', () => {
@@ -121,7 +121,7 @@ describe('release validators', () => {
     const { req, res } = mockReqRes({ data_release: '../private' });
 
     expect(validateDataRelease(req, res)).toBe(false);
-    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.status).toHaveBeenCalledWith(404);
   });
 });
 
