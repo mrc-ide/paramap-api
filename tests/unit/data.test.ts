@@ -22,7 +22,7 @@ const columnsTypes = {
   admin1: 'VARCHAR',
   gene: 'VARCHAR',
   mutation: 'VARCHAR',
-  date: 'DATE',
+  date: 'VARCHAR',
   collection_day: 'DATE',
   median: 'DOUBLE',
   no_of_informing_surveys: 'INTEGER',
@@ -58,7 +58,7 @@ describe('executeParquetQuery SQL generation', () => {
         properties: 'admin1,median',
         gene: 'crt',
         mutation: '76K',
-        date: '2024-05-01',
+        date: '2024-05',
       },
       '/prevalences',
       admin1ParquetPath,
@@ -72,7 +72,7 @@ describe('executeParquetQuery SQL generation', () => {
     expect(db.bind).toHaveBeenCalledWith({
       gene: 'crt',
       mutation: '76K',
-      date: '2024-05-01',
+      date: '2024-05',
     });
   });
 
@@ -82,8 +82,8 @@ describe('executeParquetQuery SQL generation', () => {
     await executeParquetQuery(
       {
         properties: 'admin1',
-        date_from: '2023-05-01',
-        date_to: '2025-05-01',
+        date_from: '2023-05',
+        date_to: '2025-05',
       },
       '/prevalences',
       admin1ParquetPath,
@@ -95,8 +95,8 @@ describe('executeParquetQuery SQL generation', () => {
       'WHERE p.date >= $date_from AND p.date <= $date_to',
     );
     expect(db.bind).toHaveBeenCalledWith({
-      date_from: '2023-05-01',
-      date_to: '2025-05-01',
+      date_from: '2023-05',
+      date_to: '2025-05',
     });
   });
 

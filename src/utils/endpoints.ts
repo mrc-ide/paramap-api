@@ -1,19 +1,18 @@
 import type { Request, Response } from 'express';
-import { validateRequiredQueryParams, validateDataRelease, validateDateParams, validateModelRelease, validateDateIsFirstOfMonth, validateAdminLevel } from './validators.ts';
+import { validateRequiredQueryParams, validateDataRelease, validateDateParams, validateModelRelease, validateAdminLevel } from './validators.ts';
 import type { Column } from '../types.ts';
 import { PREVALENCE_COLUMNS, SURVEY_COLUMNS } from '../constants.ts';
 
 export const validateSurveysRequest = (req: Request, res: Response) => {
   return validateRequiredQueryParams(req, res)
     && validateDataRelease(req, res)
-    && validateDateParams(req, res);
+    && validateDateParams(req, res, endpointConfigs["/surveys"].dateFormat);
 };
 
 export const validatePrevalencesRequest = (req: Request, res: Response) => {
   return validateRequiredQueryParams(req, res)
     && validateModelRelease(req.query['model_release'] as string, res)
-    && validateDateParams(req, res)
-    && validateDateIsFirstOfMonth(req, res)
+    && validateDateParams(req, res, endpointConfigs["/prevalences"].dateFormat)
     && validateAdminLevel(req, res)
 };
 
@@ -27,6 +26,7 @@ const Admin0Mode = {
 type Admin0Mode = typeof Admin0Mode[keyof typeof Admin0Mode];
 
 export type Endpoint = "/surveys" | "/prevalences";
+export type DateFormat = "YYYY-MM" | "YYYY-MM-DD";
 export interface EndpointConfig<T extends Column = Column> {
   // Query parameters that must be present in the request.
   requiredParams: string[];
@@ -36,6 +36,7 @@ export interface EndpointConfig<T extends Column = Column> {
   filterableParams: string[];
   // The column to filter on for requests that scope by date_from/date_to.
   dateColumn: T;
+  dateFormat: DateFormat;
   admin0Mode: Admin0Mode;
 }
 
@@ -50,6 +51,7 @@ export const endpointConfigs: Record<Endpoint, EndpointConfig> = {
     requestableProperties: Object.values(SURVEY_COLUMNS),
     filterableParams: ["admin0", "survey_id", "date_from", "date_to", "gene", "mutation"],
     dateColumn: "collection_day",
+    dateFormat: "YYYY-MM-DD",
     admin0Mode: "bounds",
   },
   "/prevalences": {
@@ -63,6 +65,7 @@ export const endpointConfigs: Record<Endpoint, EndpointConfig> = {
     requestableProperties: Object.values(PREVALENCE_COLUMNS),
     filterableParams: ["admin0", "admin1", "admin2", "gene", "mutation", "date", "date_from", "date_to"],
     dateColumn: "date",
+    dateFormat: "YYYY-MM",
     admin0Mode: "column",
   },
 } as const;

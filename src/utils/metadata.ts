@@ -20,8 +20,8 @@ export const getMutationsByGene = async (
       ANY_VALUE(gene) AS gene,
       ANY_VALUE(mutation) AS mutation,
       variant,
-      STRFTIME(MIN("date"), '%Y-%m-%d') AS min_date,
-      STRFTIME(MAX("date"), '%Y-%m-%d') AS max_date
+      MIN("date") AS min_date,
+      MAX("date") AS max_date
     FROM '${join(config.dataDir, "model", modelVersion, "admin0.parquet")}'
     GROUP BY variant
   `);
