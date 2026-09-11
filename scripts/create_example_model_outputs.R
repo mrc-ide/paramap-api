@@ -205,9 +205,7 @@ build_level_chunk <- function(level, regions_tbl) {
       exceedance_2 = 1 - pnorm(0.02, mean = mean, sd = SD),
       exceedance_5 = 1 - pnorm(0.05, mean = mean, sd = SD),
       exceedance_10 = 1 - pnorm(0.10, mean = mean, sd = SD),
-      no_of_informing_surveys = sample.int(35, n(), replace = TRUE) - 1L,
-      nearest_survey_by_date = sample(survey_ids, n(), replace = TRUE),
-      admin_level = as.integer(level)
+      no_of_informing_surveys = sample.int(35, n(), replace = TRUE) - 1L
     ) |>
     mutate(across(starts_with("exceedance_"), ~pmin(1, pmax(0, .x)))) |>
     select(
@@ -225,8 +223,7 @@ build_level_chunk <- function(level, regions_tbl) {
       exceedance_2,
       exceedance_5,
       exceedance_10,
-      no_of_informing_surveys,
-      nearest_survey_by_date
+      no_of_informing_surveys
     )
 }
 
