@@ -63,11 +63,10 @@ export const validateDataRelease = (req: Request, res: Response): boolean => {
   return true;
 };
 
-export const validateDateParams = (
-  req: Request,
-  res: Response,
-  dateFormat: DateFormat,
-): boolean => {
+export const validateDateParams = (req: Request, res: Response): boolean => {
+  console.log("path:", req.path);
+  const path = req.path as Endpoint;
+  const dateFormat = endpointConfigs[path].dateFormat;
   const queryParams = req.query as Record<string, string | undefined>;
 
   for (const param of ["date", "date_from", "date_to"]) {
