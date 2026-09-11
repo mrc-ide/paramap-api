@@ -4,6 +4,7 @@ import type { Column } from '../types.ts';
 import { endpointConfigs, type Endpoint } from './endpoints.ts';
 
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+const monthRegex = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 export const validateRequiredQueryParams = (
   req: Request,
@@ -62,12 +63,17 @@ export const validateDataRelease = (req: Request, res: Response): boolean => {
 
 export const validateDateParams = (req: Request, res: Response): boolean => {
   const queryParams = req.query as Record<string, string | undefined>;
+  const isPrevalenceRequest = req.path === '/prevalences';
+  const expectedFormat = isPrevalenceRequest ? 'YYYY-MM' : 'YYYY-MM-DD';
 
   for (const param of ["date", "date_from", "date_to"]) {
     const value = queryParams[param];
     if (!value) continue;
-    if (!dateRegex.test(value) || Number.isNaN(Date.parse(value))) {
-      res.status(400).send({ error: `Invalid date for parameter '${param}'. Expected YYYY-MM-DD.` });
+    const isValid = isPrevalenceRequest
+      ? monthRegex.test(value)
+      : dateRegex.test(value) && !Number.isNaN(Date.parse(value));
+    if (!isValid) {
+      res.status(400).send({ error: `Invalid date for parameter '${param}'. Expected ${expectedFormat}.` });
       return false;
     }
   }
@@ -80,17 +86,8 @@ export const validateDateParams = (req: Request, res: Response): boolean => {
     return false;
   }
 
-  if (date_from && date_to && new Date(date_from) > new Date(date_to)) {
+  if (date_from && date_to && date_from > date_to) {
     res.status(400).send({ error: "'date_from' cannot be later than 'date_to'." });
-    return false;
-  }
-  return true;
-};
-
-export const validateDateIsFirstOfMonth = (req: Request, res: Response): boolean => {
-  const date = req.query['date'] as string | undefined;
-  if (date && new Date(date).getDate() !== 1) {
-    res.status(400).send({ error: "Invalid `date` parameter. The date must be the first of a month." });
     return false;
   }
   return true;
@@ -113,4 +110,3 @@ export const validateAdminLevel = (req: Request, res: Response): boolean => {
   }
   return true;
 };
-

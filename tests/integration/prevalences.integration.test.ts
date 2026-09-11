@@ -17,7 +17,7 @@ describe('GET /prevalences', () => {
       .query({
         ...baseQuery,
         admin_level: '0',
-        date: '2024-05-01',
+        date: '2024-05',
         properties: 'admin0,median',
       });
 
@@ -35,8 +35,8 @@ describe('GET /prevalences', () => {
       .query({
         ...baseQuery,
         admin_level: '0',
-        date_from: '2024-06-01',
-        date_to: '2025-01-01',
+        date_from: '2024-06',
+        date_to: '2025-01',
         properties: 'admin0,median,date',
       });
 
@@ -45,10 +45,10 @@ describe('GET /prevalences', () => {
     expect(response.body.admin0).toHaveLength(expectedLength);
     expect(response.body.median).toHaveLength(expectedLength);
     expect(response.body.date).toHaveLength(expectedLength);
-    expect(response.body.date).toContain('2024-06-01');
-    expect(response.body.date).toContain('2025-01-01');
-    expect(response.body.date).not.toContain('2023-01-01');
-    expect(response.body.date).not.toContain('2026-01-01');
+    expect(response.body.date).toContain('2024-06');
+    expect(response.body.date).toContain('2025-01');
+    expect(response.body.date).not.toContain('2023-01');
+    expect(response.body.date).not.toContain('2026-01');
   });
 
   it('returns details for one region', async () => {
@@ -58,7 +58,7 @@ describe('GET /prevalences', () => {
         ...baseQuery,
         admin_level: '1',
         admin1: 'MLI.1_1',
-        date: '2024-05-01',
+        date: '2024-05',
         properties: [
           'median',
           'mean',
@@ -95,7 +95,7 @@ describe('GET /prevalences', () => {
         ...baseQuery,
         admin_level: '1',
         admin0: 'MLI',
-        date: '2024-05-01',
+        date: '2024-05',
         properties: 'median,admin1',
       });
 
@@ -118,7 +118,7 @@ describe('GET /prevalences', () => {
         ...baseQuery,
         admin_level: '2',
         admin0: 'MLI',
-        date: '2024-05-01',
+        date: '2024-05',
         properties: 'median,admin2',
       });
 
@@ -151,9 +151,9 @@ describe('GET /prevalences', () => {
     }));
     expect(rows).toHaveLength(25);
     expect(rows).toEqual(expect.arrayContaining([
-      { date: '2023-05-01', median: 0.476 },
-      { date: '2024-05-01', median: 0.287 },
-      { date: '2025-05-01', median: 0.214 },
+      { date: '2023-05', median: 0.476 },
+      { date: '2024-05', median: 0.287 },
+      { date: '2025-05', median: 0.214 },
     ]));
   });
 
@@ -188,7 +188,7 @@ describe('GET /prevalences', () => {
       .query({
         ...baseQuery,
         admin_level: '1',
-        date: '2024-05-01',
+        date: '2024-05',
         properties: 'admin1,password',
       });
 

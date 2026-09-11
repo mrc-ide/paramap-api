@@ -3,7 +3,6 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   validateAdminLevel,
   validateDataRelease,
-  validateDateIsFirstOfMonth,
   validateDateParams,
   validateModelRelease,
   validateRequestedProperties,
@@ -19,14 +18,14 @@ vi.mock('../../src/utils/endpoints.ts', () => ({
   },
 }));
 
-const mockReqRes = (query: Record<string, string | undefined>) => {
+const mockReqRes = (query: Record<string, string | undefined>, path = '/test') => {
   const response = {
     status: vi.fn(),
     send: vi.fn(),
   };
   response.status.mockReturnValue(response);
   return {
-    req: { path: '/test', query } as unknown as Request,
+    req: { path, query } as unknown as Request,
     res: response as unknown as Response,
   };
 };
@@ -172,17 +171,23 @@ describe('validateDateParams', () => {
   });
 });
 
-describe('validateDateIsFirstOfMonth', () => {
-  it('accepts the first day of a month', () => {
-    const { req, res } = mockReqRes({ date: '2024-05-01' });
-    expect(validateDateIsFirstOfMonth(req, res)).toBe(true);
+describe('validateDateParams for prevalences', () => {
+  it.each([
+    { date: '2024-05' },
+    { date_from: '2024-05', date_to: '2025-05' },
+  ])('accepts valid month parameters: %o', (query) => {
+    const { req, res } = mockReqRes(query, '/prevalences');
+    expect(validateDateParams(req, res)).toBe(true);
   });
 
-  it('rejects any other day', () => {
-    const { req, res } = mockReqRes({ date: '2024-05-02' });
+  it.each(['2024-05-01', '2024-13'])('rejects an invalid month value: %s', (date) => {
+    const { req, res } = mockReqRes({ date }, '/prevalences');
 
-    expect(validateDateIsFirstOfMonth(req, res)).toBe(false);
+    expect(validateDateParams(req, res)).toBe(false);
     expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.send).toHaveBeenCalledWith({
+      error: "Invalid date for parameter 'date'. Expected YYYY-MM.",
+    });
   });
 });
 
