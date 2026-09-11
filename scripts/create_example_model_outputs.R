@@ -19,20 +19,6 @@ set.seed(20260508)
 output_dir <- here("data", "model", "2026.05.08")
 dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 
-stave_file <- here("scripts", "input", "stave", "2026.03.17", "stave_data.rds")
-if (!file.exists(stave_file)) {
-  cli_abort("Input file not found: {.file {stave_file}}.")
-}
-
-stave_obj <- readRDS(stave_file)
-survey_ids <- stave_obj$get_surveys() |>
-  pull(survey_id) |>
-  unique()
-
-if (length(survey_ids) == 0) {
-  cli_abort("No survey IDs found in {.file {stave_file}}.")
-}
-
 variants <- c(
   "crt:76:K",
   "crt:76:T",

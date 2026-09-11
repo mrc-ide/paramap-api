@@ -157,7 +157,7 @@ Rscript ./scripts/process_stave.R 2026.03.17
 
 2. Generate example model outputs
 
-Currently, we generate example model outputs using a script. These example outputs are partly based on the (real) STAVE data.
+Currently, we generate example model outputs using a script.
 
 ```sh
 Rscript scripts/create_example_model_outputs.R
