@@ -209,7 +209,10 @@ build_level_chunk <- function(level, regions_tbl) {
       nearest_survey_by_date = sample(survey_ids, n(), replace = TRUE),
       admin_level = as.integer(level)
     ) |>
-    mutate(across(starts_with("exceedance_"), ~pmin(1, pmax(0, .x)))) |>
+    mutate(
+      across(starts_with("exceedance_"), ~pmin(1, pmax(0, .x))),
+      across(c(mean, median, SD, lower_95, upper_95, starts_with("exceedance_")), ~round(.x, 4))
+    ) |>
     select(
       variant,
       gene,
