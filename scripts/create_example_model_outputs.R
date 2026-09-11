@@ -293,9 +293,21 @@ admin0_rows <- write_level_table(0, admin0_regions)
 admin1_rows <- write_level_table(1, admin1_regions)
 admin2_rows <- write_level_table(2, admin2_regions)
 
+write_json(
+  list(
+    version = "2026.05.08",
+    data_release = "2026.03.17",
+    shapefile_source = "gadm41"
+  ),
+  file.path(output_dir, "metadata.json"),
+  pretty = TRUE,
+  auto_unbox = TRUE
+)
+
 cli_inform(c(
   "v" = "Wrote {.file admin0.parquet} with {admin0_rows} rows.",
   "v" = "Wrote {.file admin1.parquet} with {admin1_rows} rows.",
   "v" = "Wrote {.file admin2.parquet} with {admin2_rows} rows.",
+  "v" = "Wrote {.file metadata.json}.",
   "i" = "Output directory: {.path {output_dir}}."
 ))
