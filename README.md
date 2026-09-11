@@ -152,7 +152,7 @@ response:
 1. Process STAVE data
 
 ```sh
-Rscript ./scripts/process_stave.R 2026.03.17
+Rscript ./scripts/process_stave.R <data_release_version>
 ```
 
 2. Generate example model outputs
@@ -169,13 +169,19 @@ Rscript scripts/create_example_model_outputs.R
 ts-node --esm scripts/fetch_admin0_region_metadata.ts
 ```
 
-4. Optionally run tests
+4. Copy env vars
+
+```sh
+cp .env.example .env
+```
+
+5. Optionally run tests
 
 ```sh
 npm run test
 ```
 
-5. Start the app
+6. Start the app
 
 ```sh
 npm run dev
