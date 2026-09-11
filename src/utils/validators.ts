@@ -1,10 +1,12 @@
 import { type Request, type Response } from 'express';
 import { modelVersions, dataVersions, adminLevels } from '../constants.ts';
 import type { Column } from '../types.ts';
-import { endpointConfigs, type Endpoint } from './endpoints.ts';
+import { endpointConfigs, type DateFormat, type Endpoint } from './endpoints.ts';
 
-const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-const monthRegex = /^\d{4}-(0[1-9]|1[0-2])$/;
+const dateRegexes: Record<DateFormat, RegExp> = {
+  "YYYY-MM": /^\d{4}-(0[1-9]|1[0-2])$/,
+  "YYYY-MM-DD": /^\d{4}-\d{2}-\d{2}$/,
+};
 
 export const validateRequiredQueryParams = (
   req: Request,
@@ -61,19 +63,20 @@ export const validateDataRelease = (req: Request, res: Response): boolean => {
   return true;
 };
 
-export const validateDateParams = (req: Request, res: Response): boolean => {
+export const validateDateParams = (
+  req: Request,
+  res: Response,
+  dateFormat: DateFormat,
+): boolean => {
   const queryParams = req.query as Record<string, string | undefined>;
-  const isPrevalenceRequest = req.path === '/prevalences';
-  const expectedFormat = isPrevalenceRequest ? 'YYYY-MM' : 'YYYY-MM-DD';
 
   for (const param of ["date", "date_from", "date_to"]) {
     const value = queryParams[param];
     if (!value) continue;
-    const isValid = isPrevalenceRequest
-      ? monthRegex.test(value)
-      : dateRegex.test(value) && !Number.isNaN(Date.parse(value));
+    const isValid = dateRegexes[dateFormat].test(value)
+      && (dateFormat !== "YYYY-MM-DD" || !Number.isNaN(Date.parse(value)));
     if (!isValid) {
-      res.status(400).send({ error: `Invalid date for parameter '${param}'. Expected ${expectedFormat}.` });
+      res.status(400).send({ error: `Invalid date for parameter '${param}'. Expected ${dateFormat}.` });
       return false;
     }
   }
