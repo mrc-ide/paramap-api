@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { validateRequiredQueryParams, validateDataRelease, validateDateParams, validateModelRelease, validateDateIsFirstOfMonth, validateAdminLevel } from './validators.ts';
+import { validateRequiredQueryParams, validateDataRelease, validateDateParams, validateModelRelease, validateAdminLevel } from './validators.ts';
 import type { Column } from '../types.ts';
 import { PREVALENCE_COLUMNS, SURVEY_COLUMNS } from '../constants.ts';
 
@@ -13,7 +13,6 @@ export const validatePrevalencesRequest = (req: Request, res: Response) => {
   return validateRequiredQueryParams(req, res)
     && validateModelRelease(req.query['model_release'] as string, res)
     && validateDateParams(req, res)
-    && validateDateIsFirstOfMonth(req, res)
     && validateAdminLevel(req, res)
 };
 

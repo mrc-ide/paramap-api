@@ -131,7 +131,7 @@ GET /prevalences?
   &admin0=MLI
   &gene=k13
   &mutation=469Y
-  &date=2024-05-01
+  &date=2024-05
   &properties=median,admin2
 ```
 

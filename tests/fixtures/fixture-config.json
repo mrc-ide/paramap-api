@@ -10,15 +10,15 @@
       "variant": "crt:76:K",
       "gene": "crt",
       "mutation": "76K",
-      "start": "2023-05-01",
-      "end": "2025-05-01"
+      "start": "2023-05",
+      "end": "2025-05"
     },
     {
       "variant": "k13:469:Y",
       "gene": "k13",
       "mutation": "469Y",
-      "start": "2024-05-01",
-      "end": "2025-05-01"
+      "start": "2024-05",
+      "end": "2025-05"
     }
   ],
   "surveyIds": [

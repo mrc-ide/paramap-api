@@ -11,22 +11,22 @@ vi.mock('../../src/queryEngine.ts', () => {
         gene: 'crt',
         mutation: '76K',
         variant: 'crt:76:K',
-        min_date: '2003-05-01',
-        max_date: '2025-05-01',
+        min_date: '2003-05',
+        max_date: '2025-05',
       },
       {
         gene: 'k13',
         mutation: '469Y',
         variant: 'k13:469:Y',
-        min_date: '2020-05-01',
-        max_date: '2024-05-01',
+        min_date: '2020-05',
+        max_date: '2024-05',
       },
       {
         gene: 'k13',
         mutation: '469F',
         variant: 'k13:469:F',
-        min_date: '2021-05-01',
-        max_date: '2023-05-01',
+        min_date: '2021-05',
+        max_date: '2023-05',
       },
     ],
   }));
@@ -48,7 +48,7 @@ describe('getMutationsByGene', () => {
         gene: 'crt',
         mutations: [{
           mutation: '76K',
-          date_range: { start: '2003-05-01', end: '2025-05-01' },
+          date_range: { start: '2003-05', end: '2025-05' },
         }],
       },
       {
@@ -56,11 +56,11 @@ describe('getMutationsByGene', () => {
         mutations: [
           {
             mutation: '469Y',
-            date_range: { start: '2020-05-01', end: '2024-05-01' },
+            date_range: { start: '2020-05', end: '2024-05' },
           },
           {
             mutation: '469F',
-            date_range: { start: '2021-05-01', end: '2023-05-01' },
+            date_range: { start: '2021-05', end: '2023-05' },
           },
         ],
       },
