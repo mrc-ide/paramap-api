@@ -44,7 +44,7 @@ export const validateRequestedProperties = (
 
 export const validateModelRelease = (modelVersion: string, res: Response): boolean => {
   if (!modelVersions.includes(modelVersion)) {
-    res.status(400).send({ error: `Invalid model release: ${modelVersion}` });
+    res.status(404).send({ error: `Unknown model release: ${modelVersion}` });
     return false;
   }
   return true;
@@ -54,7 +54,7 @@ export const validateDataRelease = (req: Request, res: Response): boolean => {
   const dataVersion = req.query['data_release'] as string;
 
   if (!dataVersions.includes(dataVersion)) {
-    res.status(400).send({ error: `Invalid data release requested: ${dataVersion}` });
+    res.status(404).send({ error: `Unknown data release requested: ${dataVersion}` });
     return false;
   }
   return true;

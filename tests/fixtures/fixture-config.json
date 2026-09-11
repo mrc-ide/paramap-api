@@ -1,0 +1,30 @@
+{
+  "modelRelease": "2026.05.08",
+  "dataRelease": "2026.03.17",
+  "countries": [
+    "MLI",
+    "ETH"
+  ],
+  "variantWindows": [
+    {
+      "variant": "crt:76:K",
+      "gene": "crt",
+      "mutation": "76K",
+      "start": "2023-05-01",
+      "end": "2025-05-01"
+    },
+    {
+      "variant": "k13:469:Y",
+      "gene": "k13",
+      "mutation": "469Y",
+      "start": "2024-05-01",
+      "end": "2025-05-01"
+    }
+  ],
+  "surveyIds": [
+    "s0136_Bunkpurugu_period1",
+    "s0006_kisii_period2",
+    "s0002_Gondar_Zuria",
+    "WWARN_16154388_mali_1998"
+  ]
+}
