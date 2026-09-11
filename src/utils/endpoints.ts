@@ -6,13 +6,13 @@ import { PREVALENCE_COLUMNS, SURVEY_COLUMNS } from '../constants.ts';
 export const validateSurveysRequest = (req: Request, res: Response) => {
   return validateRequiredQueryParams(req, res)
     && validateDataRelease(req, res)
-    && validateDateParams(req, res, endpointConfigs["/surveys"].dateFormat);
+    && validateDateParams(req, res);
 };
 
 export const validatePrevalencesRequest = (req: Request, res: Response) => {
   return validateRequiredQueryParams(req, res)
     && validateModelRelease(req.query['model_release'] as string, res)
-    && validateDateParams(req, res, endpointConfigs["/prevalences"].dateFormat)
+    && validateDateParams(req, res)
     && validateAdminLevel(req, res)
 };
 
