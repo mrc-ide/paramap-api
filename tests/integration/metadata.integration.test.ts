@@ -15,6 +15,7 @@ describe('GET /metadata', () => {
       prevalences: {
         version: fixtureConfig.modelRelease,
         data_release: fixtureConfig.dataRelease,
+        shapefile_source: 'gadm41',
       },
       bounds: {
         min: { lng: expect.closeTo(-70.0635, 0.1), lat: expect.closeTo(12.4124, 0.1) },
