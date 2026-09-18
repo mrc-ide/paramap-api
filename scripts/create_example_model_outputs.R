@@ -196,6 +196,7 @@ build_level_chunk <- function(level, regions_tbl) {
 
   output_table <- base |>
     mutate(
+      date = format(date, "%Y-%m"),
       mean = mean_prevalence,
       median = median_prevalence,
       SD = prevalence_sd,

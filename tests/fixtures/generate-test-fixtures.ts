@@ -41,7 +41,7 @@ for (const path of prevalencePaths) {
       WHERE
         admin0 IN (${fixtureConfig.countries.map(c => `'${c}'`).join(', ')})
         AND (${fixtureConfig.variantWindows.map(w =>
-          `(variant = '${w.variant}' AND date BETWEEN DATE '${w.start}' AND DATE '${w.end}')`,
+          `(variant = '${w.variant}' AND date BETWEEN '${w.start}' AND '${w.end}')`,
         ).join(' OR ')})
     )
     TO '${prevalenceDestination}' (FORMAT PARQUET)

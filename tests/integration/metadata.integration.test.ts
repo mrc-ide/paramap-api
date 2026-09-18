@@ -27,14 +27,14 @@ describe('GET /metadata', () => {
         gene: 'crt',
         mutations: [{
           mutation: '76K',
-          date_range: { start: '2023-05-01', end: '2025-05-01' },
+          date_range: { start: '2023-05', end: '2025-05' },
         }],
       },
       {
         gene: 'k13',
         mutations: [{
           mutation: '469Y',
-          date_range: { start: '2024-05-01', end: '2025-05-01' },
+          date_range: { start: '2024-05', end: '2025-05' },
         }],
       },
     ];

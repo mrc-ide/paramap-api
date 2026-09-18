@@ -3,7 +3,6 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   validateAdminLevel,
   validateDataRelease,
-  validateDateIsFirstOfMonth,
   validateDateParams,
   validateModelRelease,
   validateRequestedProperties,
@@ -15,18 +14,23 @@ vi.mock('../../src/utils/endpoints.ts', () => ({
   endpointConfigs: {
     '/test': {
       requiredParams: ['gene', 'mutation', 'properties'],
+      dateFormat: "YYYY-MM-DD"
+    },
+    '/test-month': {
+      requiredParams: ['gene', 'mutation', 'properties'],
+      dateFormat: "YYYY-MM"
     },
   },
 }));
 
-const mockReqRes = (query: Record<string, string | undefined>) => {
+const mockReqRes = (query: Record<string, string | undefined>, path = '/test') => {
   const response = {
     status: vi.fn(),
     send: vi.fn(),
   };
   response.status.mockReturnValue(response);
   return {
-    req: { path: '/test', query } as unknown as Request,
+    req: { path, query } as unknown as Request,
     res: response as unknown as Response,
   };
 };
@@ -127,7 +131,7 @@ describe('release validators', () => {
 
 describe('validateDateParams', () => {
   it.each(['date', 'date_from', 'date_to'])('rejects an invalid %s format', (parameter) => {
-    const { req, res } = mockReqRes({ [parameter]: '01-05-2024' });
+    const { req, res } = mockReqRes({ [parameter]: '2024-05' });
 
     expect(validateDateParams(req, res)).toBe(false);
     expect(res.send).toHaveBeenCalledWith({
@@ -172,17 +176,43 @@ describe('validateDateParams', () => {
   });
 });
 
-describe('validateDateIsFirstOfMonth', () => {
-  it('accepts the first day of a month', () => {
-    const { req, res } = mockReqRes({ date: '2024-05-01' });
-    expect(validateDateIsFirstOfMonth(req, res)).toBe(true);
+describe('validateDateParams for monthly date format', () => {
+  it.each(['date', 'date_from', 'date_to'])('rejects an invalid %s format', (parameter) => {
+    const { req, res } = mockReqRes({ [parameter]: '2024-05-01' }, '/test-month');
+
+    expect(validateDateParams(req, res)).toBe(false);
+    expect(res.send).toHaveBeenCalledWith({
+      error: `Invalid date for parameter '${parameter}'. Expected YYYY-MM.`,
+    });
+    expect(res.status).toHaveBeenCalledWith(400);
   });
 
-  it('rejects any other day', () => {
-    const { req, res } = mockReqRes({ date: '2024-05-02' });
+  it.each(['date', 'date_from', 'date_to'])('rejects an invalid date for %s', (parameter) => {
+    const { req, res } = mockReqRes({ [parameter]: '2026-99' }, '/test-month');
 
-    expect(validateDateIsFirstOfMonth(req, res)).toBe(false);
+    expect(validateDateParams(req, res)).toBe(false);
+    expect(res.send).toHaveBeenCalledWith({
+      error: `Invalid date for parameter '${parameter}'. Expected YYYY-MM.`,
+    });
     expect(res.status).toHaveBeenCalledWith(400);
+  });
+
+  it('rejects when date_from is later than date_to', () => {
+    const { req, res } = mockReqRes({
+      date_from: '2025-01',
+      date_to: '2024-01',
+    }, '/test-month');
+
+    expect(validateDateParams(req, res)).toBe(false);
+    expect(res.status).toHaveBeenCalledWith(400);
+  });
+
+  it('accepts a valid date range', () => {
+    const { req, res } = mockReqRes({
+      date_from: '2024-01',
+      date_to: '2025-01',
+    }, '/test-month');
+    expect(validateDateParams(req, res)).toBe(true);
   });
 });
 
