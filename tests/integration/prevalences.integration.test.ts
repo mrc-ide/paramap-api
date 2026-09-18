@@ -75,16 +75,16 @@ describe('GET /prevalences', () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({
-      median: [0.0745],
-      mean: [0.0908],
-      lower_95: [0],
-      upper_95: [0.1979],
-      SD: [0.0546],
-      exceedance_1: [0.9305],
-      exceedance_2: [0.9026],
-      exceedance_5: [0.7725],
-      exceedance_10: [0.4334],
-      no_of_informing_surveys: [32],
+      median: [0.2113],
+      mean: [0.2032],
+      lower_95: [0.1011],
+      upper_95: [0.3053],
+      SD: [0.0521],
+      exceedance_1: [0.9999],
+      exceedance_2: [0.9998],
+      exceedance_5: [0.9984],
+      exceedance_10: [0.9762],
+      no_of_informing_surveys: [5],
     });
   });
 
@@ -106,8 +106,8 @@ describe('GET /prevalences', () => {
     }));
     expect(rows).toHaveLength(9);
     expect(rows).toEqual(expect.arrayContaining([
-      { admin1: 'MLI.1_1', median: 0.0745 },
-      { admin1: 'MLI.8_1', median: 0.6369 },
+      { admin1: 'MLI.1_1', median: 0.2113 },
+      { admin1: 'MLI.8_1', median: 0.3359 },
     ]));
   });
 
@@ -129,8 +129,8 @@ describe('GET /prevalences', () => {
       }));
       expect(rows).toHaveLength(50);
       expect(rows).toEqual(expect.arrayContaining([
-        { admin2: 'MLI.1.1_1', median: 0.1244 },
-        { admin2: 'MLI.8.1_1', median: 0.396 },
+        { admin2: 'MLI.1.1_1', median: 0.3019 },
+        { admin2: 'MLI.8.1_1', median: 0.1818 },
       ]));
   });
 
