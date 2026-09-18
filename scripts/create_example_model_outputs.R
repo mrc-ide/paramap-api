@@ -193,7 +193,10 @@ build_level_chunk <- function(level, regions_tbl) {
       exceedance_10 = 1 - pnorm(0.10, mean = mean, sd = SD),
       no_of_informing_surveys = sample.int(35, n(), replace = TRUE) - 1L
     ) |>
-    mutate(across(starts_with("exceedance_"), ~pmin(1, pmax(0, .x)))) |>
+    mutate(
+      across(starts_with("exceedance_"), ~pmin(1, pmax(0, .x))),
+      across(c(mean, median, SD, lower_95, upper_95, starts_with("exceedance_")), ~round(.x, 4))
+    ) |>
     select(
       variant,
       gene,
