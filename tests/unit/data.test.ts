@@ -66,7 +66,7 @@ describe('executeParquetQuery SQL generation', () => {
     );
 
     expect(db.prepare).toHaveBeenCalledWith(
-      `SELECT p.admin1, ROUND(p.median, 4) AS median FROM '${admin1ParquetPath}' p ` +
+      `SELECT p.admin1, p.median FROM '${admin1ParquetPath}' p ` +
       'WHERE p.gene = $gene AND p.mutation = $mutation AND p.date = $date',
     );
     expect(db.bind).toHaveBeenCalledWith({
@@ -190,21 +190,6 @@ describe('executeParquetQuery SQL generation', () => {
       `SELECT p.admin1 FROM '${admin1ParquetPath}' p `,
     );
     expect(db.bind).toHaveBeenCalledWith({});
-  });
-
-  it('rounds floating-point columns', async () => {
-    const response = mockResponse();
-
-    await executeParquetQuery(
-      { properties: 'median,no_of_informing_surveys' },
-      '/prevalences',
-      admin1ParquetPath,
-      response,
-    );
-
-    expect(db.prepare).toHaveBeenCalledWith(
-      `SELECT ROUND(p.median, 4) AS median, p.no_of_informing_surveys FROM '${admin1ParquetPath}' p `,
-    );
   });
 
   it('rejects a requested property if it belongs to a different parquet schema', async () => {
