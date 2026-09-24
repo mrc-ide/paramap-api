@@ -193,7 +193,8 @@ build_level_chunk <- function(level, regions_tbl) {
       exceedance_10,
       no_of_informing_surveys,
       nearest_survey_by_date
-    )
+    ) |>
+    mutate(across(where(is.numeric), ~round(.x, digits = 7)))
 }
 
 write_level_table <- function(level, regions_tbl, target_chunk_rows = 500000L) {
