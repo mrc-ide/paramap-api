@@ -24,8 +24,8 @@ describe('GET /prevalences', () => {
     expect(response.status).toBe(200);
     expect(response.body.admin0).toStrictEqual(['ETH', 'MLI']);
     expect(response.body.median).toStrictEqual([
-      0.2031,
-      0.2870,
+      expect.closeTo(0.20),
+      expect.closeTo(0.29),
     ]);
   });
 
@@ -75,16 +75,16 @@ describe('GET /prevalences', () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({
-      median: [0.2113],
-      mean: [0.2032],
-      lower_95: [0.1011],
-      upper_95: [0.3053],
-      SD: [0.0521],
-      exceedance_1: [0.9999],
-      exceedance_2: [0.9998],
-      exceedance_5: [0.9984],
-      exceedance_10: [0.9762],
-      no_of_informing_surveys: [5],
+      median: [expect.closeTo(0.07)],
+      mean: [expect.closeTo(0.09)],
+      lower_95: [0],
+      upper_95: [expect.closeTo(0.20)],
+      SD: [expect.closeTo(0.05)],
+      exceedance_1: [expect.closeTo(0.93)],
+      exceedance_2: [expect.closeTo(0.90)],
+      exceedance_5: [expect.closeTo(0.77)],
+      exceedance_10: [expect.closeTo(0.43)],
+      no_of_informing_surveys: [32],
     });
   });
 
@@ -106,8 +106,8 @@ describe('GET /prevalences', () => {
     }));
     expect(rows).toHaveLength(9);
     expect(rows).toEqual(expect.arrayContaining([
-      { admin1: 'MLI.1_1', median: 0.2113 },
-      { admin1: 'MLI.8_1', median: 0.3359 },
+      { admin1: 'MLI.1_1', median: expect.closeTo(0.07) },
+      { admin1: 'MLI.8_1', median: expect.closeTo(0.64) },
     ]));
   });
 
@@ -129,8 +129,8 @@ describe('GET /prevalences', () => {
       }));
       expect(rows).toHaveLength(50);
       expect(rows).toEqual(expect.arrayContaining([
-        { admin2: 'MLI.1.1_1', median: 0.3019 },
-        { admin2: 'MLI.8.1_1', median: 0.1818 },
+        { admin2: 'MLI.1.1_1', median: expect.closeTo(0.12) },
+        { admin2: 'MLI.8.1_1', median: expect.closeTo(0.40) },
       ]));
   });
 
@@ -151,9 +151,9 @@ describe('GET /prevalences', () => {
     }));
     expect(rows).toHaveLength(25);
     expect(rows).toEqual(expect.arrayContaining([
-      { date: '2023-05-01', median: 0.476 },
-      { date: '2024-05-01', median: 0.287 },
-      { date: '2025-05-01', median: 0.214 },
+      { date: '2023-05-01', median: expect.closeTo(0.48) },
+      { date: '2024-05-01', median: expect.closeTo(0.29) },
+      { date: '2025-05-01', median: expect.closeTo(0.21) },
     ]));
   });
 

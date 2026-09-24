@@ -11,13 +11,14 @@ library(dplyr)
 library(here)
 library(jsonlite)
 library(purrr)
+library(tibble)
 library(tidyr)
 library(variantstring)
 
-set.seed(20260508)
+# Constants
 
-output_dir <- here("data", "model", "2026.05.08")
-dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+stave_version <- "2026.03.17"
+model_version <- "2026.05.08"
 
 variants <- c(
   "crt:76:K",
@@ -57,22 +58,17 @@ variants <- c(
   "mdr1:86:Y"
 )
 
-parsed_list <- variant_to_long(variants)
-n_rows <- vapply(parsed_list, nrow, integer(1))
-if (any(n_rows != 1)) {
-  invalid_variants <- variants[n_rows != 1]
-  cli_abort(c(
-    "Expected each variant to parse to exactly 1 row via {.fn variant_to_long}, but got unexpected row counts for: {.val {unique(invalid_variants)}}.",
-    "x" = "The variant string might not be single-locus."
-  ))
-}
+grout_base_url <- "https://mrcdata.dide.ic.ac.uk/grout"
 
-parsed_variants <- bind_rows(Map(
-  function(parsed_variant, variant) mutate(parsed_variant, variant = variant),
-  parsed_list,
-  variants
-)) |>
-  transmute(variant, gene, mutation = paste0(pos, aa))
+subsaharan_africa_iso <- c(
+  "AGO", "BDI", "BEN", "BFA", "BWA", "CAF", "CIV", "CMR", "COD", "COG",
+  "COM", "CPV", "DJI", "ERI", "ETH", "GAB", "GHA", "GIN", "GMB", "GNB",
+  "GNQ", "KEN", "LBR", "LSO", "MDG", "MLI", "MOZ", "MRT", "MUS", "MWI",
+  "NAM", "NER", "NGA", "RWA", "SDN", "SEN", "SLE", "SOM", "SSD", "STP",
+  "SWZ", "SYC", "TCD", "TGO", "TZA", "UGA", "ZAF", "ZMB", "ZWE"
+)
+
+# Functions
 
 fetch_json <- function(url) {
   response_text <- tryCatch(readLines(url, warn = FALSE), error = function(e) NULL)
@@ -89,24 +85,8 @@ extract_data <- function(response, url) {
   response$data
 }
 
-admin0_url <- "https://mrcdata.dide.ic.ac.uk/grout/region-metadata/gadm41/admin0"
-admin0_resp <- fetch_json(admin0_url)
-admin0_df <- extract_data(admin0_resp, admin0_url)
-
-subsaharan_africa_iso <- c(
-  "AGO", "BDI", "BEN", "BFA", "BWA", "CAF", "CIV", "CMR", "COD", "COG",
-  "COM", "CPV", "DJI", "ERI", "ETH", "GAB", "GHA", "GIN", "GMB", "GNB",
-  "GNQ", "KEN", "LBR", "LSO", "MDG", "MLI", "MOZ", "MRT", "MUS", "MWI",
-  "NAM", "NER", "NGA", "RWA", "SDN", "SEN", "SLE", "SOM", "SSD", "STP",
-  "SWZ", "SYC", "TCD", "TGO", "TZA", "UGA", "ZAF", "ZMB", "ZWE"
-)
-
-admin0_regions <- admin0_df |>
-  filter(id %in% subsaharan_africa_iso) |>
-  transmute(admin0 = id)
-
 fetch_country_level <- function(level, iso3_code) {
-  url <- sprintf("https://mrcdata.dide.ic.ac.uk/grout/region-metadata/gadm41/admin%d/%s", level, iso3_code)
+  url <- sprintf("%s/region-metadata/gadm41/admin%d/%s", grout_base_url, level, iso3_code)
   response <- fetch_json(url)
   region_data <- extract_data(response, url)
   if (!is.data.frame(region_data) || nrow(region_data) == 0) {
@@ -160,8 +140,6 @@ make_variant_months <- function(variant_values) {
   bind_rows(sampled, forced_extremes) |> distinct(variant, date)
 }
 
-variant_months <- make_variant_months(variants)
-
 build_level_chunk <- function(level, regions_tbl) {
   base <- tidyr::crossing(
     regions_tbl,
@@ -212,8 +190,9 @@ build_level_chunk <- function(level, regions_tbl) {
       exceedance_2,
       exceedance_5,
       exceedance_10,
-      no_of_informing_surveys
-    )
+      no_of_informing_surveys,
+    ) |>
+    mutate(across(where(is.numeric), ~round(.x, digits = 7)))
 }
 
 write_level_table <- function(level, regions_tbl, target_chunk_rows = 500000L) {
@@ -274,6 +253,53 @@ write_level_table <- function(level, regions_tbl, target_chunk_rows = 500000L) {
 
   total_rows
 }
+
+# Steps
+
+output_dir <- here("data", "model", model_version)
+dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+
+stave_file <- here("scripts", "input", "stave", stave_version, "stave_data.rds")
+if (!file.exists(stave_file)) {
+  cli_abort("Input file not found: {.file {stave_file}}.")
+}
+
+stave_obj <- readRDS(stave_file)
+survey_ids <- stave_obj$get_surveys() |>
+  pull(survey_id) |>
+  unique()
+
+if (length(survey_ids) == 0) {
+  cli_abort("No survey IDs found in {.file {stave_file}}.")
+}
+
+parsed_list <- variant_to_long(variants)
+n_rows <- vapply(parsed_list, nrow, integer(1))
+if (any(n_rows != 1)) {
+  invalid_variants <- variants[n_rows != 1]
+  cli_abort(c(
+    "Expected each variant to parse to exactly 1 row via {.fn variant_to_long}, but got unexpected row counts for: {.val {unique(invalid_variants)}}.",
+    "x" = "The variant string might not be single-locus."
+  ))
+}
+
+parsed_variants <- bind_rows(Map(
+  function(parsed_variant, variant) mutate(parsed_variant, variant = variant),
+  parsed_list,
+  variants
+)) |>
+  transmute(variant, gene, mutation = paste0(pos, aa))
+
+admin0_url <- sprintf("%s/region-metadata/gadm41/admin0", grout_base_url)
+admin0_resp <- fetch_json(admin0_url)
+admin0_df <- extract_data(admin0_resp, admin0_url)
+
+admin0_regions <- admin0_df |>
+  filter(id %in% subsaharan_africa_iso) |>
+  transmute(admin0 = id)
+
+set.seed(12345678)
+variant_months <- make_variant_months(variants)
 
 admin0_rows <- write_level_table(0, admin0_regions)
 admin1_rows <- write_level_table(1, admin1_regions)
