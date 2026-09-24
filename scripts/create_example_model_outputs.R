@@ -103,7 +103,9 @@ extract_data <- function(response, url) {
   response$data
 }
 
-admin0_url <- "https://mrcdata.dide.ic.ac.uk/grout/region-metadata/gadm41/admin0"
+grout_base_url <- "https://mrcdata.dide.ic.ac.uk/grout"
+
+admin0_url <- sprintf("%s/region-metadata/gadm41/admin0", grout_base_url)
 admin0_resp <- fetch_json(admin0_url)
 admin0_df <- extract_data(admin0_resp, admin0_url)
 
@@ -120,7 +122,7 @@ admin0_regions <- admin0_df |>
   transmute(admin0 = id)
 
 fetch_country_level <- function(level, iso3_code) {
-  url <- sprintf("https://mrcdata.dide.ic.ac.uk/grout/region-metadata/gadm41/admin%d/%s", level, iso3_code)
+  url <- sprintf("%s/region-metadata/gadm41/admin%d/%s", grout_base_url, level, iso3_code)
   response <- fetch_json(url)
   region_data <- extract_data(response, url)
   if (!is.data.frame(region_data) || nrow(region_data) == 0) {
