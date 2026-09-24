@@ -75,11 +75,6 @@ export const validateDateParams = (req: Request, res: Response): boolean => {
   const date_from = queryParams.date_from;
   const date_to = queryParams.date_to;
 
-  if ((date_from && !date_to) || (date_to && !date_from)) {
-    res.status(400).send({ error: "Only one of 'date_to' and 'date_from' was specified." });
-    return false;
-  }
-
   if (date_from && date_to && new Date(date_from) > new Date(date_to)) {
     res.status(400).send({ error: "'date_from' cannot be later than 'date_to'." });
     return false;
