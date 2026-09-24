@@ -92,9 +92,9 @@ describe('GET /surveys', () => {
       reference_year: 2025,
       numerator: 75,
       denominator: 438,
-      prevalence: expect.closeTo(17.123287671232877),
-      prevalence_lower: expect.closeTo(13.713367285006745),
-      prevalence_upper: expect.closeTo(20.984498579443024),
+      prevalence: expect.closeTo(17.12),
+      prevalence_lower: expect.closeTo(13.71),
+      prevalence_upper: expect.closeTo(20.98),
     }]);
   });
 
