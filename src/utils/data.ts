@@ -24,8 +24,6 @@ const admin0RegionMetadata = JSON.parse(
 // Arbitrary alias for the parquet file in the SQL queries.
 const tableName = "p";
 
-const roundableColumnTypes = ["DOUBLE", "FLOAT", "DECIMAL"];
-
 // Build and run an SQL query out of the requested properties and filters.
 export const executeParquetQuery = async (
   queryParams: QueryParams,
@@ -45,7 +43,7 @@ export const executeParquetQuery = async (
     return;
   };
 
-  const selectColumns = await buildSelectColumns(parquetPath, properties);
+  const selectColumns = properties.map(p => `${tableName}.${p}`).join(", ");
   const where = buildWhereClause(queryParams, config, res);
   if (!where) return;
 
@@ -56,21 +54,6 @@ export const executeParquetQuery = async (
   statement.bind(bindings);
   const result = await statement.runAndReadAll();
   return result;
-};
-
-const buildSelectColumns = async (
-  parquetPath: string,
-  requestedProperties: Column[],
-): Promise<string> => {
-  const parquetColumns = await inspectColumns(parquetPath);
-
-  return requestedProperties.map((p) => {
-    // Round to 4 decimal places for numeric columns, to reduce size of response
-    const columnType = parquetColumns[p];
-    return roundableColumnTypes.includes(columnType)
-      ? `ROUND(${tableName}.${p}, 4) AS ${p}`
-      : `${tableName}.${p}`;
-  }).join(", ");
 };
 
 
