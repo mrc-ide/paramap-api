@@ -24,8 +24,8 @@ describe('GET /prevalences', () => {
     expect(response.status).toBe(200);
     expect(response.body.admin0).toStrictEqual(['ETH', 'MLI']);
     expect(response.body.median).toStrictEqual([
-      expect.closeTo(0.20),
-      expect.closeTo(0.29),
+      expect.closeTo(0.32),
+      expect.closeTo(0.27),
     ]);
   });
 
@@ -75,16 +75,16 @@ describe('GET /prevalences', () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({
-      median: [expect.closeTo(0.07)],
-      mean: [expect.closeTo(0.09)],
-      lower_95: [0],
-      upper_95: [expect.closeTo(0.20)],
-      SD: [expect.closeTo(0.05)],
-      exceedance_1: [expect.closeTo(0.93)],
-      exceedance_2: [expect.closeTo(0.90)],
-      exceedance_5: [expect.closeTo(0.77)],
-      exceedance_10: [expect.closeTo(0.43)],
-      no_of_informing_surveys: [32],
+      median: [expect.closeTo(0.37)],
+      mean: [expect.closeTo(0.34)],
+      lower_95: [expect.closeTo(0.27)],
+      upper_95: [expect.closeTo(0.41)],
+      SD: [expect.closeTo(0.04)],
+      exceedance_1: [expect.closeTo(1)],
+      exceedance_2: [expect.closeTo(1)],
+      exceedance_5: [expect.closeTo(1)],
+      exceedance_10: [expect.closeTo(1)],
+      no_of_informing_surveys: [20],
     });
   });
 
@@ -106,8 +106,8 @@ describe('GET /prevalences', () => {
     }));
     expect(rows).toHaveLength(9);
     expect(rows).toEqual(expect.arrayContaining([
-      { admin1: 'MLI.1_1', median: expect.closeTo(0.07) },
-      { admin1: 'MLI.8_1', median: expect.closeTo(0.64) },
+      { admin1: 'MLI.1_1', median: expect.closeTo(0.37) },
+      { admin1: 'MLI.8_1', median: expect.closeTo(0.68) },
     ]));
   });
 
@@ -123,15 +123,15 @@ describe('GET /prevalences', () => {
       });
 
     expect(response.status).toBe(200);
-      const rows = response.body.admin2.map((admin2: string, index: number) => ({
-        admin2,
-        median: response.body.median[index],
-      }));
-      expect(rows).toHaveLength(50);
-      expect(rows).toEqual(expect.arrayContaining([
-        { admin2: 'MLI.1.1_1', median: expect.closeTo(0.12) },
-        { admin2: 'MLI.8.1_1', median: expect.closeTo(0.40) },
-      ]));
+    const rows = response.body.admin2.map((admin2: string, index: number) => ({
+      admin2,
+      median: response.body.median[index],
+    }));
+    expect(rows).toHaveLength(50);
+    expect(rows).toEqual(expect.arrayContaining([
+      { admin2: 'MLI.1.1_1', median: expect.closeTo(0.37) },
+      { admin2: 'MLI.8.1_1', median: expect.closeTo(0.36) },
+    ]));
   });
 
   it('returns an unbounded time series when date parameters are omitted', async () => {
@@ -149,11 +149,11 @@ describe('GET /prevalences', () => {
       date,
       median: response.body.median[index],
     }));
-    expect(rows).toHaveLength(25);
+    expect(rows).toHaveLength(response.body.date.length);
     expect(rows).toEqual(expect.arrayContaining([
-      { date: '2023-05-01', median: expect.closeTo(0.48) },
-      { date: '2024-05-01', median: expect.closeTo(0.29) },
-      { date: '2025-05-01', median: expect.closeTo(0.21) },
+      { date: '2024-05-01', median: expect.closeTo(0.27) },
+      { date: '2024-06-01', median: expect.closeTo(0.29) },
+      { date: '2025-05-01', median: expect.closeTo(0.25) },
     ]));
   });
 

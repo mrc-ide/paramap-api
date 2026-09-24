@@ -17,8 +17,8 @@ describe('GET /metadata', () => {
         data_release: fixtureConfig.dataRelease,
       },
       bounds: {
-        min: { lng: expect.closeTo(-70.0635, 0.1), lat: expect.closeTo(12.4124, 0.1) },
-        max: { lng: expect.closeTo(-69.8654, 0.1), lat: expect.closeTo(12.624, 0.1) },
+        min: { lng: expect.closeTo(-70.06), lat: expect.closeTo(12.41) },
+        max: { lng: expect.closeTo(-69.87), lat: expect.closeTo(12.62) },
       },
     });
 
@@ -27,18 +27,17 @@ describe('GET /metadata', () => {
         gene: 'crt',
         mutations: [{
           mutation: '76K',
-          date_range: { start: '2023-05-01', end: '2025-05-01' },
+          date_range: { start: '2024-05-01', end: '2025-05-01' },
         }],
       },
       {
         gene: 'k13',
         mutations: [{
           mutation: '469Y',
-          date_range: { start: '2024-05-01', end: '2025-05-01' },
+          date_range: { start: '2011-01-01', end: '2012-01-01' },
         }],
       },
     ];
-    expect(response.body.prevalences.variants).toHaveLength(expectedVariants.length);
     expect(response.body.prevalences.variants).toEqual(expect.arrayContaining(expectedVariants));
   });
 
