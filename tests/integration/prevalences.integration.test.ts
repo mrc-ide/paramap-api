@@ -149,7 +149,7 @@ describe('GET /prevalences', () => {
       date,
       median: response.body.median[index],
     }));
-    expect(rows).toHaveLength(response.body.date.length);
+    expect(rows).toHaveLength(13);
     expect(rows).toEqual(expect.arrayContaining([
       { date: '2024-05-01', median: expect.closeTo(0.27) },
       { date: '2024-06-01', median: expect.closeTo(0.29) },
