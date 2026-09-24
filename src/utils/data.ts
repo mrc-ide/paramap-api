@@ -85,10 +85,10 @@ const buildWhereClause = (queryParams: QueryParams, config: EndpointConfig, res:
       continue;
     }
     const column = ["date_from", "date_to"].includes(paramName) ? config.dateColumn : paramName;
-    const equality = paramName === "date_from" ? ">=" : paramName === "date_to" ? "<=" : "=";
+    const comparison = paramName === "date_from" ? ">=" : paramName === "date_to" ? "<=" : "=";
 
     const paramVal = queryParams[paramName];
-    whereClauses.push(`${tableName}.${column} ${equality} $${paramName}`);
+    whereClauses.push(`${tableName}.${column} ${comparison} $${paramName}`);
     bindings[paramName] = paramVal ?? null;
   }
 
