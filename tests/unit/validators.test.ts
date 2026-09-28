@@ -131,7 +131,7 @@ describe('release validators', () => {
 
 describe('validateDateParams', () => {
   it.each(['date', 'date_from', 'date_to'])('rejects an invalid %s format', (parameter) => {
-    const { req, res } = mockReqRes({ [parameter]: 'March 1st' });
+    const { req, res } = mockReqRes({ [parameter]: '2025-01' });
 
     expect(validateDateParams(req, res)).toBe(false);
     expect(res.send).toHaveBeenCalledWith({
