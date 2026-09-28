@@ -86,6 +86,8 @@ drop_cols <- c("description", "access_level", "PMID", "country_name",
 
 prevalence_tbl <- prevalence_tbl |>
   select(-all_of(drop_cols)) |>
+  rename(lat = latitude, lng = longitude) |>
+  mutate(lat = round(lat, 4), lng = round(lng, 4)) |> # Drop <10m precision
   mutate(across(where(is.character), fix_utf8))
 
 write_parquet(prevalence_tbl, file.path(output_dir, output_filename))
