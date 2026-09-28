@@ -1,4 +1,5 @@
 {
   "version": "2026.05.08",
-  "data_release": "2026.03.17"
+  "data_release": "2026.03.17",
+  "shapefile_source": "gadm41"
 }
