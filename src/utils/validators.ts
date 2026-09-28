@@ -4,8 +4,8 @@ import type { Column } from '../types.ts';
 import { endpointConfigs, type DateFormat, type Endpoint } from './endpoints.ts';
 
 const dateRegexes: Record<DateFormat, RegExp> = {
-  "YYYY-MM": /^\d{4}-(0[1-9]|1[0-2])$/,
-  "YYYY-MM-DD": /^\d{4}-\d{2}-\d{2}$/,
+  "YYYY-MM": /^(19|20)\d{2}-(0[1-9]|1[0-2])$/,
+  "YYYY-MM-DD": /^(19|20)\d{2}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/,
 };
 
 export const validateRequiredQueryParams = (
