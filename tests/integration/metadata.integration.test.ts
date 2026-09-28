@@ -14,7 +14,10 @@ describe('GET /metadata', () => {
       model_releases: [fixtureConfig.modelRelease],
       prevalences: {
         version: fixtureConfig.modelRelease,
-        data_release: fixtureConfig.dataRelease,
+        dependencies: {
+          data_release: fixtureConfig.dataRelease,
+          shapefile_source: fixtureConfig.shapefileSource,
+        },
       },
       bounds: {
         min: { lng: expect.closeTo(-70.0635, 0.1), lat: expect.closeTo(12.4124, 0.1) },
@@ -49,7 +52,10 @@ describe('GET /metadata', () => {
 
     expect(response.status).toBe(200);
     expect(response.body.prevalences.version).toBe(fixtureConfig.modelRelease);
-    expect(response.body.prevalences.data_release).toBe(fixtureConfig.dataRelease);
+    expect(response.body.prevalences.dependencies).toEqual({
+      data_release: fixtureConfig.dataRelease,
+      shapefile_source: fixtureConfig.shapefileSource,
+    });
   });
 
   it('rejects an unknown model release', async () => {

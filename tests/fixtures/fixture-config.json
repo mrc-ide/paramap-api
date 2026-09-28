@@ -1,6 +1,7 @@
 {
   "modelRelease": "2026.05.08",
   "dataRelease": "2026.03.17",
+  "shapefileSource": "gadm41",
   "countries": [
     "MLI",
     "ETH"
