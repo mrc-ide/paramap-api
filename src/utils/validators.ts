@@ -1,12 +1,9 @@
 import { type Request, type Response } from 'express';
 import { modelVersions, dataVersions, adminLevels } from '../constants.ts';
 import type { Column } from '../types.ts';
-import { endpointConfigs, type DateFormat, type Endpoint } from './endpoints.ts';
+import { endpointConfigs, type Endpoint } from './endpoints.ts';
 
-const dateRegexes: Record<DateFormat, RegExp> = {
-  "YYYY-MM": /^(19|20)\d{2}-(0[1-9]|1[0-2])$/,
-  "YYYY-MM-DD": /^(19|20)\d{2}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/,
-};
+const YYYYMMRegex = /^(19|20)\d{2}-(0[1-9]|1[0-2])$/;
 
 export const validateRequiredQueryParams = (
   req: Request,
@@ -71,9 +68,7 @@ export const validateDateParams = (req: Request, res: Response): boolean => {
   for (const param of ["date", "date_from", "date_to"]) {
     const value = queryParams[param];
     if (!value) continue;
-    const isValid = dateRegexes[dateFormat].test(value)
-      && (dateFormat !== "YYYY-MM-DD" || !Number.isNaN(Date.parse(value)));
-    if (!isValid) {
+    if (dateFormat === "YYYY-MM" ? !YYYYMMRegex.test(value) : isNaN(Date.parse(value))) {
       res.status(400).send({ error: `Invalid date for parameter '${param}'. Expected ${dateFormat}.` });
       return false;
     }
