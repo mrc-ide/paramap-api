@@ -64,7 +64,6 @@ export const validateDataRelease = (req: Request, res: Response): boolean => {
 };
 
 export const validateDateParams = (req: Request, res: Response): boolean => {
-  console.log("path:", req.path);
   const path = req.path as Endpoint;
   const dateFormat = endpointConfigs[path].dateFormat;
   const queryParams = req.query as Record<string, string | undefined>;
