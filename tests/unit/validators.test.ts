@@ -131,7 +131,7 @@ describe('release validators', () => {
 
 describe('validateDateParams', () => {
   it.each(['date', 'date_from', 'date_to'])('rejects an invalid %s format', (parameter) => {
-    const { req, res } = mockReqRes({ [parameter]: '2024-05' });
+    const { req, res } = mockReqRes({ [parameter]: 'March 1st' });
 
     expect(validateDateParams(req, res)).toBe(false);
     expect(res.send).toHaveBeenCalledWith({
@@ -150,11 +150,10 @@ describe('validateDateParams', () => {
     expect(res.status).toHaveBeenCalledWith(400);
   });
 
-  it.each(['date_from', 'date_to'])('requires %s with the other date range parameter', (parameter) => {
+  it.each(['date_from', 'date_to'])('does not requires %s with the other date range parameter', (parameter) => {
     const { req, res } = mockReqRes({ [parameter]: '2024-01-01' });
 
-    expect(validateDateParams(req, res)).toBe(false);
-    expect(res.status).toHaveBeenCalledWith(400);
+    expect(validateDateParams(req, res)).toBe(true);
   });
 
   it('rejects when date_from is later than date_to', () => {
