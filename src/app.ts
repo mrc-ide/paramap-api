@@ -26,7 +26,10 @@ export const createApp = (): Express => {
       model_releases: modelVersions,
       prevalences: {
         version: modelVersion,
-        data_release: dataVersion,
+        dependencies: {
+          data_release: dataVersion,
+          shapefile_source: modelMetadata.shapefile_source,
+        },
         variants: mutationsByGene,
       },
       bounds: globalBounds.bounds,
