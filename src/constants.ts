@@ -41,7 +41,6 @@ export const SURVEY_COLUMNS = {
 } as const;
 
 export const PREVALENCE_COLUMNS = {
-  ADMIN_LEVEL: "admin_level",
   ADMIN0: "admin0",
   ADMIN1: "admin1",
   ADMIN2: "admin2",
@@ -55,7 +54,6 @@ export const PREVALENCE_COLUMNS = {
   MEAN: "mean",
   MEDIAN: "median",
   MUTATION: "mutation",
-  NEAREST_SURVEY_BY_DATE: "nearest_survey_by_date",
   NO_OF_INFORMING_SURVEYS: "no_of_informing_surveys", // Gives a survey id
   SD: "SD",
   UPPER_95: "upper_95",
