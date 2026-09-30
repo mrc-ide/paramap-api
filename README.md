@@ -152,7 +152,7 @@ response:
 
 ## First-time development set-up
 
-1. Process STAVE data
+1. Process STAVE data. This will create and populate `./data/stave/<data_release_version>/survey_data.parquet`.
 
 ```sh
 Rscript ./scripts/process_stave.R <data_release_version>
@@ -196,10 +196,10 @@ NB The list of in-scope genes and mutations will vary over time, with model rele
 
 ### STAVE data
 
-When a new STAVE data release is provided, it should be given a version name e.g. "2026.03.17", and committed in `scripts/input/stave/<version>/stave_data.rds`. Then, run the [process_stave.R](./scripts/process_stave.R) script:
+When a new STAVE data release is provided, it should be given a version name e.g. "v1.0.0", and committed in `scripts/input/stave/<version>/stave_data.rds`. Then, run the [process_stave.R](./scripts/process_stave.R) script:
 
 ```sh
-Rscript ./scripts/process_stave.R 2026.03.17
+Rscript ./scripts/process_stave.R v1.0.0
 ```
 
 This will create `./data/stave/<version>/survey_data.parquet`.

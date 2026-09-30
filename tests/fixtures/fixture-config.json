@@ -1,6 +1,6 @@
 {
-  "modelRelease": "2026.05.08",
-  "dataRelease": "2026.03.17",
+  "modelRelease": "v0.1.0",
+  "dataRelease": "v1.0.0",
   "shapefileSource": "gadm41",
   "countries": [
     "MLI",

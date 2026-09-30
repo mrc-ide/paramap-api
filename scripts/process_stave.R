@@ -17,7 +17,7 @@ args <- commandArgs(trailingOnly = TRUE)
 if (length(args) == 0) {
   cli_abort(c(
     "Usage: {.code Rscript process_stave.R <stave_release>}",
-    "i" = "Example: {.code Rscript process_stave.R 2026.03.17}"
+    "i" = "Example: {.code Rscript process_stave.R v1.0.0}"
   ))
 }
 
