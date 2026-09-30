@@ -17,8 +17,8 @@ library(variantstring)
 
 # Constants
 
-stave_version <- "2026.03.17"
-model_version <- "2026.05.08"
+stave_version <- "v1.0.0"
+model_version <- "v0.0.0"
 
 variants <- c(
   "crt:76:K",

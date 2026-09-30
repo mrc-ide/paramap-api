@@ -33,9 +33,9 @@ request:
 response:
 ```jsonc
 {
-  "model_releases": ["v1", "v2"],
+  "model_releases": ["v0.0.0", "v0.1.0"],
   "prevalences": {
-    "version": "v1",
+    "version": "v0.0.0",
     "dependencies": {
       "data_release": "v1.0.0",
       "shapefile_source": "gadm41",
@@ -129,7 +129,7 @@ The `admin_level` query parameter determines the granularity of the model output
 request:
 ```
 GET /prevalences?
-  &model_release=v2
+  &model_release=v0.1.0
   &admin_level=2
   &admin0=MLI
   &gene=k13
@@ -196,10 +196,10 @@ NB The list of in-scope genes and mutations will vary over time, with model rele
 
 ### STAVE data
 
-When a new STAVE data release is provided, it should be given a version name e.g. "2026.03.17", and committed in `scripts/input/stave/<version>/stave_data.rds`. Then, run the [process_stave.R](./scripts/process_stave.R) script:
+When a new STAVE data release is provided, it should be given a version name e.g. "v1.0.0", and committed in `scripts/input/stave/<version>/stave_data.rds`. Then, run the [process_stave.R](./scripts/process_stave.R) script:
 
 ```sh
-Rscript ./scripts/process_stave.R 2026.03.17
+Rscript ./scripts/process_stave.R v1.0.0
 ```
 
 This will create `./data/stave/<version>/survey_data.parquet`.
