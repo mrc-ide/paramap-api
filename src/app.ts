@@ -1,5 +1,3 @@
-// TODO: JSON schema for telling consumers what shape response to expect?
-
 import express, { type Express, type Request, type Response } from 'express';
 import { join } from 'node:path';
 import config from './config/config.ts';
