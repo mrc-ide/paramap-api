@@ -33,9 +33,9 @@ request:
 response:
 ```jsonc
 {
-  "model_releases": ["v0.0.0", "v0.1.0"],
+  "model_releases": ["v1", "v2"],
   "prevalences": {
-    "version": "v0.0.0",
+    "version": "v1",
     "dependencies": {
       "data_release": "v1.0.0",
       "shapefile_source": "gadm41",
@@ -129,7 +129,7 @@ The `admin_level` query parameter determines the granularity of the model output
 request:
 ```
 GET /prevalences?
-  &model_release=v0.1.0
+  &model_release=v2
   &admin_level=2
   &admin0=MLI
   &gene=k13
@@ -152,7 +152,7 @@ response:
 
 ## First-time development set-up
 
-1. Process STAVE data
+1. Process STAVE data. This will create and populate `./data/stave/<data_release_version>/survey_data.parquet`.
 
 ```sh
 Rscript ./scripts/process_stave.R <data_release_version>
