@@ -105,19 +105,29 @@ describe('validateRequestedProperties', () => {
 
 describe('release validators', () => {
   it('accepts a known model release', () => {
-    const { res } = mockReqRes({});
-    expect(validateModelRelease(fixtureConfig.modelRelease, res)).toBe(true);
+    const { req, res } = mockReqRes({ model_release: fixtureConfig.modelRelease });
+    expect(validateModelRelease(req, res)).toBe(true);
+  });
+
+  it('accepts a missing model release by falling back to the default', () => {
+    const { req, res } = mockReqRes({});
+    expect(validateModelRelease(req, res)).toBe(true);
   });
 
   it('rejects an unknown model release', () => {
-    const { res } = mockReqRes({ model_release: '../private' });
+    const { req, res } = mockReqRes({ model_release: '../private' });
 
-    expect(validateModelRelease("../private", res)).toBe(false);
+    expect(validateModelRelease(req, res)).toBe(false);
     expect(res.status).toHaveBeenCalledWith(404);
   });
 
   it('accepts a known data release', () => {
     const { req, res } = mockReqRes({ data_release: fixtureConfig.dataRelease });
+    expect(validateDataRelease(req, res)).toBe(true);
+  });
+
+  it('accepts a missing data release by falling back to the default', () => {
+    const { req, res } = mockReqRes({});
     expect(validateDataRelease(req, res)).toBe(true);
   });
 

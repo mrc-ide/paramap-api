@@ -11,7 +11,7 @@ export const validateSurveysRequest = (req: Request, res: Response) => {
 
 export const validatePrevalencesRequest = (req: Request, res: Response) => {
   return validateRequiredQueryParams(req, res)
-    && validateModelRelease(req.query['model_release'] as string, res)
+    && validateModelRelease(req, res)
     && validateDateParams(req, res)
     && validateAdminLevel(req, res)
 };
@@ -43,7 +43,6 @@ export interface EndpointConfig<T extends Column = Column> {
 export const endpointConfigs: Record<Endpoint, EndpointConfig> = {
   "/surveys": {
     requiredParams: [
-      "data_release",
       "properties",
       SURVEY_COLUMNS.GENE,
       SURVEY_COLUMNS.MUTATION,
@@ -56,7 +55,6 @@ export const endpointConfigs: Record<Endpoint, EndpointConfig> = {
   },
   "/prevalences": {
     requiredParams: [
-      "model_release",
       "admin_level",
       "properties",
       PREVALENCE_COLUMNS.GENE,

@@ -131,6 +131,19 @@ describe('GET /surveys', () => {
     expect(response.body).toEqual({ error: 'ISO code not found: ZZZ' });
   });
 
+  it('uses the data release of the latest model release when none is specified', async () => {
+    const query = { gene: baseQuery.gene, mutation: baseQuery.mutation, properties: pointProperties };
+
+    const defaultResponse = await request(app).get('/surveys').query(query);
+    const explicitResponse = await request(app)
+      .get('/surveys')
+      .query({ ...query, data_release: fixtureConfig.dataRelease });
+
+    expect(defaultResponse.status).toBe(200);
+    expect(defaultResponse.body.length).toBeGreaterThan(0);
+    expect(defaultResponse.body).toEqual(explicitResponse.body);
+  });
+
   it('rejects an unknown data release', async () => {
     const response = await request(app)
       .get('/surveys')

@@ -1,6 +1,7 @@
 import { type Request, type Response } from 'express';
 import { modelVersions, dataVersions, adminLevels } from '../constants.ts';
 import type { Column } from '../types.ts';
+import { getDataRelease, getModelRelease } from './releases.ts';
 import { endpointConfigs, type DateFormat, type Endpoint } from './endpoints.ts';
 
 const dateRegexes: Record<DateFormat, RegExp> = {
@@ -45,7 +46,8 @@ export const validateRequestedProperties = (
 // The release-version validators below are intended to guard against SQL injection
 // by checking the requested version is a filepath within the relevant data directory.
 
-export const validateModelRelease = (modelVersion: string, res: Response): boolean => {
+export const validateModelRelease = (req: Request, res: Response): boolean => {
+  const modelVersion = getModelRelease(req);
   if (!modelVersions.includes(modelVersion)) {
     res.status(404).send({ error: `Unknown model release: ${modelVersion}` });
     return false;
@@ -54,8 +56,7 @@ export const validateModelRelease = (modelVersion: string, res: Response): boole
 };
 
 export const validateDataRelease = (req: Request, res: Response): boolean => {
-  const dataVersion = req.query['data_release'] as string;
-
+  const dataVersion = getDataRelease(req);
   if (!dataVersions.includes(dataVersion)) {
     res.status(404).send({ error: `Unknown data release requested: ${dataVersion}` });
     return false;
