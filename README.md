@@ -166,7 +166,7 @@ Currently, we generate example model outputs using a script.
 Rscript scripts/create_example_model_outputs.R
 ```
 
-3. Fetch admin0 region metadata from Grout
+3. Fetch admin0 region metadata from [Grout](https://github.com/mrc-ide/grout)
 
 ```sh
 npx ts-node --esm scripts/fetch_admin0_region_metadata.ts
