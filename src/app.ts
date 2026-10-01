@@ -1,13 +1,11 @@
 import express, { type Express, type Request, type Response } from 'express';
-import { join } from 'node:path';
-import config from './config/config.ts';
 import { errorHandler } from './middlewares/errorHandler.ts';
 import { globalBounds, modelVersions } from './constants.ts';
 import type { QueryParams } from './types.ts';
 import { validateModelRelease } from './utils/validators.ts';
 import { getDataRelease, getModelRelease, readModelMetadata } from './utils/releases.ts';
 import { validateSurveysRequest, validatePrevalencesRequest } from './utils/endpoints.ts';
-import { executeParquetQuery } from './utils/data.ts';
+import { executeParquetQuery, prevalencesParquet, surveyDataParquet } from './utils/data.ts';
 import { getMutationsByGene } from './utils/metadata.ts';
 
 export const createApp = (): Express => {
@@ -39,9 +37,8 @@ export const createApp = (): Express => {
     if (!validateSurveysRequest(req, res)) return;
 
     const dataVersion = getDataRelease(req);
-    const surveyDataParquet = join(config.dataDir, "stave", dataVersion, "survey_data.parquet");
-
-    const result = await executeParquetQuery(req.query as QueryParams, "/surveys", surveyDataParquet, res);
+    const surveyDataParquetPath = surveyDataParquet(dataVersion);
+    const result = await executeParquetQuery(req.query as QueryParams, "/surveys", surveyDataParquetPath, res);
     if (!result) return;
 
     res.type("json").send(result.getRowObjectsJson());
@@ -55,9 +52,8 @@ export const createApp = (): Express => {
 
     // Client may request results at any of the available levels of granularity.
     const adminLevel = queryParams.admin_level as string;
-    const prevalencesParquet = join(config.dataDir, "model", modelVersion, `admin${adminLevel}.parquet`);
-
-    const result = await executeParquetQuery(queryParams, "/prevalences", prevalencesParquet, res);
+    const prevalencesParquetPath = prevalencesParquet(modelVersion, adminLevel);
+    const result = await executeParquetQuery(queryParams, "/prevalences", prevalencesParquetPath, res);
     if (!result) return;
 
     res.type("json").send(result.getColumnsObjectJson());

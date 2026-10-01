@@ -107,3 +107,9 @@ const buildBoundsClause = (region: Admin0RegionMetadata) => {
     `${tableName}.${SURVEY_COLUMNS.LNG} <= ${bounds.max.lng}`
   ].join(" AND ");
 };
+
+export const prevalencesParquet = (modelVersion: string, adminLevel: string) =>
+  join(config.dataDir, "model", modelVersion, `admin${adminLevel}.parquet`);
+
+export const surveyDataParquet = (dataVersion: string) =>
+  join(config.dataDir, "stave", dataVersion, "survey_data.parquet");

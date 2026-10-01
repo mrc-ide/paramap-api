@@ -1,9 +1,6 @@
-// Get unique genetic variants and their associated genes and mutations.
-
 import { connection } from "../queryEngine.ts";
-import { join } from "node:path";
-import config from "../config/config.ts";
 import type { Mutation } from "../types.ts";
+import { prevalencesParquet } from "./data.ts";
 
 // Get unique genetic variants and their associated genes and mutations,
 // as well as the date range for each variant, from the model outputs rectangle.
@@ -22,7 +19,7 @@ export const getMutationsByGene = async (
       variant,
       MIN("date") AS min_date,
       MAX("date") AS max_date
-    FROM '${join(config.dataDir, "model", modelVersion, "admin0.parquet")}'
+    FROM '${prevalencesParquet(modelVersion, "0")}'
     GROUP BY variant
   `);
 
