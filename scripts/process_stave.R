@@ -27,14 +27,26 @@ output_filename = "survey_data.parquet"
 input_dir <- here("scripts", "input", "stave", current_stave_release)
 output_dir <- here("data", "stave", current_stave_release)
 
-dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
-
 input_file <- file.path(input_dir, "stave_data.rds")
 if (!file.exists(input_file)) {
   cli_abort("Input file not found: {.file {input_file}}.")
 }
 
 stave_obj <- readRDS(input_file)
+
+studies <- stave_obj$get_studies()
+if ("access_level" %in% names(studies)) {
+  non_public <- studies |>
+    filter(access_level %in% c("private", "restricted"))
+  if (nrow(non_public) > 0) {
+    cli_abort(c(
+      "Aborting processing STAVE data: {nrow(non_public)} studies",
+      "have an access_level of private or restricted.",
+      "i" = "This is a public application. Raise this with the",
+      "data provider and do not process these data further."
+    ))
+  }
+}
 
 variants <- stave_obj$get_variants()
 
@@ -85,11 +97,12 @@ drop_cols <- c("description", "access_level", "PMID", "country_name",
                "location_method", "location_notes", "time_method", "time_notes")
 
 prevalence_tbl <- prevalence_tbl |>
-  select(-all_of(drop_cols)) |>
+  select(-any_of(drop_cols)) |>
   rename(lat = latitude, lng = longitude) |>
   mutate(lat = round(lat, 4), lng = round(lng, 4)) |> # Drop <10m precision
   mutate(across(where(is.character), fix_utf8))
 
+dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 write_parquet(prevalence_tbl, file.path(output_dir, output_filename))
 
 cli_inform(c("v" = "Wrote {.file {output_filename}} with {nrow(prevalence_tbl)} rows to {.path {output_dir}}."))
