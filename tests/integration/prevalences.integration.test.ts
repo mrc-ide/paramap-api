@@ -164,8 +164,30 @@ describe('GET /prevalences', () => {
 
     expect(response.status).toBe(400);
     expect(response.body.error).toBe(
-      'Missing required query parameters: model_release, properties, gene, mutation',
+      'Missing required query parameters: properties, gene, mutation',
     );
+  });
+
+  it('uses the latest model release when none is specified', async () => {
+    const query = { gene: baseQuery.gene, mutation: baseQuery.mutation, admin_level: '0', properties: 'admin0,date,median' };
+
+    const defaultResponse = await request(app).get('/prevalences').query(query);
+    const explicitResponse = await request(app)
+      .get('/prevalences')
+      .query({ ...query, model_release: fixtureConfig.modelRelease });
+
+    expect(defaultResponse.status).toBe(200);
+    expect(defaultResponse.body.median.length).toBeGreaterThan(0);
+    expect(defaultResponse.body).toEqual(explicitResponse.body);
+  });
+
+  it('rejects an unknown model release', async () => {
+    const response = await request(app)
+      .get('/prevalences')
+      .query({ ...baseQuery, model_release: '../private', admin_level: '0', properties: 'median' });
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({ error: 'Unknown model release: ../private' });
   });
 
   it('rejects a containing region more granular than the requested results', async () => {
