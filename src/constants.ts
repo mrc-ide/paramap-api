@@ -4,19 +4,6 @@ import config from "./config/config.ts";
 
 export const adminLevels = ["0", "1", "2"];
 
-export const globalBounds = {
-  "bounds": {
-    "min": {
-      "lng": -70.0635,
-      "lat": 12.4124
-    },
-    "max": {
-      "lng": -69.8654,
-      "lat": 12.624
-    }
-  }
-};
-
 export const SURVEY_COLUMNS = {
   COLLECTION_DAY: "collection_day",
   COLLECTION_END: "collection_end",

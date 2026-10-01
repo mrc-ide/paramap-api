@@ -9,15 +9,17 @@ import type { DuckDBResultReader } from '@duckdb/node-api';
 import { SURVEY_COLUMNS } from '../constants.ts';
 import { endpointConfigs, type Endpoint, type EndpointConfig } from './endpoints.ts';
 
-interface Admin0RegionMetadata {
-  id: string;
-  bounds: {
-    min: { lat: number; lng: number };
-    max: { lat: number; lng: number };
-  };
+export interface Bounds {
+  min: { lat: number; lng: number };
+  max: { lat: number; lng: number };
 }
 
-const admin0RegionMetadata = JSON.parse(
+interface Admin0RegionMetadata {
+  id: string;
+  bounds: Bounds;
+}
+
+export const admin0RegionMetadata = JSON.parse(
   await readFile(join(config.dataDir, "admin0-region-metadata.json"), "utf8"),
 ) as Admin0RegionMetadata[];
 
