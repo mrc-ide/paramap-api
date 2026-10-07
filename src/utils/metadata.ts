@@ -1,9 +1,7 @@
-// Get unique genetic variants and their associated genes and mutations.
-
 import { connection } from "../queryEngine.ts";
-import { join } from "node:path";
-import config from "../config.ts";
 import type { Mutation } from "../types.ts";
+import { PREVALENCE_COLUMNS } from "../constants.ts";
+import { admin0RegionMetadata, prevalencesParquet, type Bounds } from "./data.ts";
 
 // Get unique genetic variants and their associated genes and mutations,
 // as well as the date range for each variant, from the model outputs rectangle.
@@ -22,7 +20,7 @@ export const getMutationsByGene = async (
       variant,
       MIN("date") AS min_date,
       MAX("date") AS max_date
-    FROM '${join(config.dataDir, "model", modelVersion, "admin0.parquet")}'
+    FROM '${prevalencesParquet(modelVersion, "0")}'
     GROUP BY variant
   `);
 
@@ -49,4 +47,28 @@ export const getMutationsByGene = async (
     }
     return acc;
   }, [] as { gene: string, mutations: Mutation[] }[]);
+};
+
+// Get the bounding box enclosing all admin0 regions for a model release.
+export const globalBounds = async (modelVersion: string): Promise<Bounds> => {
+  const uniqueAdmin0Query = await connection.runAndReadAll(`
+    SELECT DISTINCT ${PREVALENCE_COLUMNS.ADMIN0}
+    FROM '${prevalencesParquet(modelVersion, "0")}'
+  `);
+  const admin0s = new Set(uniqueAdmin0Query.getColumnsObject()[PREVALENCE_COLUMNS.ADMIN0]);
+
+  return admin0RegionMetadata
+    .filter(({ id }) => admin0s.has(id))
+    .reduce((acc, { bounds }) => {
+      return {
+        min: {
+          lat: Math.min(acc.min.lat, bounds.min.lat),
+          lng: Math.min(acc.min.lng, bounds.min.lng),
+        },
+        max: {
+          lat: Math.max(acc.max.lat, bounds.max.lat),
+          lng: Math.max(acc.max.lng, bounds.max.lng),
+        },
+      };
+    }, { min: { lat: Infinity, lng: Infinity }, max: { lat: -Infinity, lng: -Infinity } });
 };

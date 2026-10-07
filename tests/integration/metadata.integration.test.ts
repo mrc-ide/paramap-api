@@ -19,9 +19,9 @@ describe('GET /metadata', () => {
           shapefile_source: fixtureConfig.shapefileSource,
         },
       },
-      bounds: {
-        min: { lng: expect.closeTo(-70.06), lat: expect.closeTo(12.41) },
-        max: { lng: expect.closeTo(-69.87), lat: expect.closeTo(12.62) },
+      bounds: { // Derived from the countries listed in fixture-config.json
+        min: { lng: expect.closeTo(-12.24), lat: expect.closeTo(3.40) },
+        max: { lng: expect.closeTo(47.96), lat: expect.closeTo(25) },
       },
     });
 
