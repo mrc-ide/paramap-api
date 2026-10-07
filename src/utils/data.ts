@@ -2,7 +2,7 @@ import { type Response } from 'express';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { connection } from '../queryEngine.ts';
-import config from '../config/config.ts';
+import config from '../config.ts';
 import type { Column, QueryParams } from '../types.ts';
 import { validateRequestedProperties } from './validators.ts';
 import type { DuckDBResultReader } from '@duckdb/node-api';

@@ -2,7 +2,7 @@
 
 import { connection } from "../queryEngine.ts";
 import { join } from "node:path";
-import config from "../config/config.ts";
+import config from "../config.ts";
 import type { Mutation } from "../types.ts";
 
 // Get unique genetic variants and their associated genes and mutations,

@@ -5,7 +5,6 @@ dotenv.config();
 interface Config {
   port?: number;
   dataDir: string;
-  latestModelVersion: string;
 }
 
 const port = process.env.PORT;
@@ -15,7 +14,6 @@ const config: Config = {
   dataDir: process.env.NODE_ENV === 'test'
     ? 'tests/fixtures/data'
     : 'data',
-  latestModelVersion: 'v0.1.0',
 };
 
 export default config;

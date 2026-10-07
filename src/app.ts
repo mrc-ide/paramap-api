@@ -1,6 +1,6 @@
 import express, { type Express, type Request, type Response } from 'express';
 import { join } from 'node:path';
-import config from './config/config.ts';
+import config from './config.ts';
 import { errorHandler } from './middlewares/errorHandler.ts';
 import { globalBounds, modelVersions } from './constants.ts';
 import type { QueryParams } from './types.ts';
