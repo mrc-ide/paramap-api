@@ -89,7 +89,7 @@ response:
 
 2. /surveys
 
-An endpoint for querying survey data, as stored in `/data/stave/<version>/survey_data.parquet`.
+An endpoint for querying survey data, as stored in `/data/stave/<version>/survey_data.parquet`. Responses are in row format.
 
 The optional `data_release` parameter defaults to the data release that the latest model release (as configured via `config.ts`) depends on.
 
@@ -124,7 +124,7 @@ response:
 
 3. /prevalences
 
-An endpoint for querying model outputs, as stored in `/data/model/<version>/admin<level>.parquet`.
+An endpoint for querying model outputs, as stored in `/data/model/<version>/admin<level>.parquet`. Responses are in columnar format.
 
 The optional `model_release` parameter defaults to the latest model release, as configured via `config.ts`.
 
@@ -144,13 +144,22 @@ GET /prevalences?
 
 response:
 ```jsonc
-[
-  {
-    "admin2": "MLI.1.1_1",
-    "median": 0.7647
-  },
-  // ...
-]
+{
+  "median": [
+    0.0907051,
+    0.5127887,
+    0.2504908,
+    0.1886464,
+    // ...
+  ],
+  "admin2": [
+    "MLI.1.1_1",
+    "MLI.2.1_1",
+    "MLI.2.2_1",
+    "MLI.2.3_1",
+    // ...
+  ]
+}
 ```
 
 
