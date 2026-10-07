@@ -3,6 +3,7 @@ import { modelVersions, dataVersions, adminLevels } from '../constants.ts';
 import type { Column } from '../types.ts';
 import { getDataRelease, getModelRelease } from './releases.ts';
 import { endpointConfigs, type DateFormat, type Endpoint } from './endpoints.ts';
+import { sendErrorResponse } from './helpers.ts';
 
 const dateRegexes: Record<DateFormat, RegExp> = {
   "YYYY-MM": /^(19|20)\d{2}-(0[1-9]|1[0-2])$/,
@@ -16,7 +17,7 @@ export const validateRequiredQueryParams = (
   const path = req.path as Endpoint;
   const missingParams = endpointConfigs[path].requiredParams.filter(param => !req.query[param]);
   if (missingParams.length > 0) {
-    res.status(400).send({ error: `Missing required query parameters: ${missingParams.join(', ')}` });
+    sendErrorResponse(res, `Missing required query parameters: ${missingParams.join(', ')}`, 400);
     return false;
   }
   return true;
@@ -29,7 +30,7 @@ export const validateRequestedProperties = (
   res: Response,
 ): boolean => {
   if (requestedProperties.length === 0) {
-    res.status(400).send({ error: "At least one property must be requested." });
+    sendErrorResponse(res, "At least one property must be requested.", 400);
     return false;
   }
   const availableColumns = Object.keys(parquetColumns);
@@ -37,7 +38,7 @@ export const validateRequestedProperties = (
     return !(requestableProperties as string[]).includes(p) || !availableColumns.includes(p);
   });
   if (invalid) {
-    res.status(400).send({ error: `Invalid property requested: ${invalid}` });
+    sendErrorResponse(res, `Invalid property requested: ${invalid}`, 400);
     return false;
   }
   return true;
@@ -49,7 +50,7 @@ export const validateRequestedProperties = (
 export const validateModelRelease = (req: Request, res: Response): boolean => {
   const modelVersion = getModelRelease(req);
   if (!modelVersions.includes(modelVersion)) {
-    res.status(404).send({ error: `Unknown model release: ${modelVersion}` });
+    sendErrorResponse(res, `Unknown model release: ${modelVersion}`, 404);
     return false;
   }
   return true;
@@ -58,7 +59,7 @@ export const validateModelRelease = (req: Request, res: Response): boolean => {
 export const validateDataRelease = (req: Request, res: Response): boolean => {
   const dataVersion = getDataRelease(req);
   if (!dataVersions.includes(dataVersion)) {
-    res.status(404).send({ error: `Unknown data release requested: ${dataVersion}` });
+    sendErrorResponse(res, `Unknown data release requested: ${dataVersion}`, 404);
     return false;
   }
   return true;
@@ -74,7 +75,7 @@ export const validateDateParams = (req: Request, res: Response): boolean => {
     if (!value) continue;
     const isValid = dateRegexes[dateFormat].test(value);
     if (!isValid) {
-      res.status(400).send({ error: `Invalid date for parameter '${param}'. Expected ${dateFormat}.` });
+      sendErrorResponse(res, `Invalid date for parameter '${param}'. Expected ${dateFormat}.`, 400);
       return false;
     }
   }
@@ -83,7 +84,7 @@ export const validateDateParams = (req: Request, res: Response): boolean => {
   const date_to = queryParams.date_to;
 
   if (date_from && date_to && date_from > date_to) {
-    res.status(400).send({ error: "'date_from' cannot be later than 'date_to'." });
+    sendErrorResponse(res, "'date_from' cannot be later than 'date_to'.", 400);
     return false;
   }
   return true;
@@ -92,15 +93,13 @@ export const validateDateParams = (req: Request, res: Response): boolean => {
 export const validateAdminLevel = (req: Request, res: Response): boolean => {
   const adminLevel = req.query['admin_level'] as string | undefined;
   if (!adminLevel || !adminLevels.includes(adminLevel)) {
-    res.status(400).send({ error: `Invalid admin level requested: ${adminLevel}` });
+    sendErrorResponse(res, `Invalid admin level requested: ${adminLevel}`, 400);
     return false;
   }
   // Validate admin_level against admin0, admin1, admin2 parameters if they exist.
   for (const level of adminLevels) {
     if (req.query[`admin${level}`] && Number(adminLevel) < Number(level)) {
-      res.status(400).send({
-        error: "You cannot request results at a less granular level than that of the containing region.",
-      });
+      sendErrorResponse(res, "You cannot request results at a less granular level than that of the containing region.", 400);
       return false;
     }
   }

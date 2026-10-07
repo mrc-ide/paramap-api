@@ -8,6 +8,7 @@ import { validateRequestedProperties } from './validators.ts';
 import type { DuckDBResultReader } from '@duckdb/node-api';
 import { SURVEY_COLUMNS } from '../constants.ts';
 import { endpointConfigs, type Endpoint, type EndpointConfig } from './endpoints.ts';
+import { sendErrorResponse } from './helpers.ts';
 
 export interface Bounds {
   min: { lat: number; lng: number };
@@ -80,7 +81,7 @@ const buildWhereClause = (queryParams: QueryParams, config: EndpointConfig, res:
     if (paramName === "admin0" && config.admin0Mode === "bounds") {
       const region = admin0RegionMetadata.find(({ id }) => id === queryParams.admin0);
       if (!region) {
-        res.status(400).send({ error: `ISO code not found: ${queryParams.admin0}` });
+        sendErrorResponse(res, `ISO code not found: ${queryParams.admin0}`, 400);
         return;
       }
       whereClauses.push(buildBoundsClause(region));
