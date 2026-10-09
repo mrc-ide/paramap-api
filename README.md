@@ -20,7 +20,7 @@ The `/surveys` and `/prevalences` endpoints correspond to the two kinds of data 
 This endpoint returns:
 - All available model releases
 - The global/initial bounding box for the map
-- Metadata pertaining to a specific model release (this is specified by an optional `model_release` parameter, which defaults to latest, as configured via `config.ts`):
+- Metadata pertaining to a specific model release (this is specified by an optional `model_release` parameter, which defaults to latest):
   - The model release label ('version')
   - The corresponding data release and shapefile source for the model release (under the 'dependencies' property)
   - The available genes for the model release, each with their available 'mutations' (encoding position and allele), and the range of dates for which prevalence is modelled for each mutation.
@@ -91,7 +91,7 @@ response:
 
 An endpoint for querying survey data, as stored in `/data/stave/<version>/survey_data.parquet`.
 
-The optional `data_release` parameter defaults to the data release that the latest model release (as configured via `config.ts`) depends on.
+The optional `data_release` parameter defaults to the data release that the latest model release depends on.
 
 Note that this endpoint actually returns multiple entries per STAVE survey - that is, we have one entry per variant per STAVE survey. Thus these objects match the STAVE concept of a '[count](https://mrc-ide.github.io/STAVE/articles/howto_counts_table.html)' (which counts a particular mutation) a bit more closely than the concept of a '[survey](https://mrc-ide.github.io/STAVE/articles/howto_surveys_table.html)' (which would collect multiple genetic variants).
 
@@ -126,7 +126,7 @@ response:
 
 An endpoint for querying model outputs, as stored in `/data/model/<version>/admin<level>.parquet`.
 
-The optional `model_release` parameter defaults to the latest model release, as configured via `config.ts`.
+The optional `model_release` parameter defaults to the latest model release.
 
 The `admin_level` query parameter determines the granularity of the model outputs, while the query parameters `admin0`, `admin1` and `admin2` scope the results to a particular region. Thus for example, to request results within the `admin0` region of Mali (`MLI`), at the finest level of granularity:
 
