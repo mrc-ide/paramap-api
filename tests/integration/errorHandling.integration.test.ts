@@ -19,7 +19,7 @@ describe('error handling middleware', () => {
       .query({ model_release: fixtureConfig.modelRelease });
 
     expect(response.status).toBe(500);
-    expect(response.body).toEqual({ message: 'DuckDB exploded' });
+    expect(response.body).toEqual({ error: 'DuckDB exploded' });
   });
 
   it('falls back to a generic message when the error has none', async () => {
@@ -32,6 +32,6 @@ describe('error handling middleware', () => {
       .query({ model_release: fixtureConfig.modelRelease });
 
     expect(response.status).toBe(500);
-    expect(response.body).toEqual({ message: 'Internal Server Error' });
+    expect(response.body).toEqual({ error: 'Internal Server Error' });
   });
 });
