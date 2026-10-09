@@ -19,11 +19,7 @@ export const validatePrevalencesRequest = (req: Request, res: Response) => {
 // column mode: filter on the admin0 column directly.
 // bounds mode: translate the admin0 ISO code into lat/lng bounding-boxes.
 // Survey data does not come with region metadata, so we filter it by lat/lng.
-const Admin0Mode = {
-  BOUNDS: "bounds",
-  COLUMN: "column",
-} as const;
-type Admin0Mode = typeof Admin0Mode[keyof typeof Admin0Mode];
+type Admin0Mode = "bounds" | "column";
 
 export type Endpoint = "/surveys" | "/prevalences";
 export type DateFormat = "YYYY-MM" | "YYYY-MM-DD";

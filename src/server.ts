@@ -1,5 +1,5 @@
 import { createApp } from './app.ts';
-import config from './config/config.ts';
+import config from './config.ts';
 
 if (!config.port) {
   throw new Error('PORT is required');

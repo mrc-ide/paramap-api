@@ -1,6 +1,6 @@
 import { readdir } from "fs/promises";
 import { join } from "node:path";
-import config from "./config/config.ts";
+import config from "./config.ts";
 
 export const adminLevels = ["0", "1", "2"];
 
