@@ -1,6 +1,6 @@
 import type { Request } from "express";
 import { readFile } from "node:fs/promises";
-import semverSort from "semver-sort";
+import semver from "semver";
 import { join } from "node:path";
 import config from "../config.ts";
 import { modelVersions } from "../constants.ts";
@@ -16,7 +16,7 @@ export const readModelMetadata = async (modelVersion: string): Promise<ModelMeta
   return JSON.parse(await readFile(metadataPath, "utf8")) as ModelMetadata;
 };
 
-const latestModelRelease = semverSort.desc(modelVersions).at(0)!;
+const latestModelRelease = semver.rsort([...modelVersions])[0];
 
 // Each model release depends on a specific data release, so the default data release
 // is the one that the default model release depends on.
