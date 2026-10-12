@@ -118,6 +118,21 @@ describe('GET /surveys', () => {
     ]));
   });
 
+  it('returns a 400 for invalid requests', async () => {
+    const response = await request(app)
+      .get('/surveys')
+      .query({
+        ...baseQuery,
+        bbox: '4.245,25,-12.2389,10.1595',
+        date_from: '2000-01-01',
+        date_to: '2030-02-01',
+        properties: pointProperties,
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ error: 'Invalid bbox: 4.245,25,-12.2389,10.1595' });
+  });
+
   it('uses the data release of the latest model release when none is specified', async () => {
     const query = { gene: baseQuery.gene, mutation: baseQuery.mutation, properties: pointProperties };
 
