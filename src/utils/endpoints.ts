@@ -16,15 +16,6 @@ export const validatePrevalencesRequest = (req: Request, res: Response) => {
     && validateAdminLevel(req, res)
 };
 
-// column mode: filter on the admin0 column directly.
-// bounds mode: translate the admin0 ISO code into lat/lng bounding-boxes.
-// Survey data does not come with region metadata, so we filter it by lat/lng.
-const Admin0Mode = {
-  BOUNDS: "bounds",
-  COLUMN: "column",
-} as const;
-type Admin0Mode = typeof Admin0Mode[keyof typeof Admin0Mode];
-
 export type Endpoint = "/surveys" | "/prevalences";
 export type DateFormat = "YYYY-MM" | "YYYY-MM-DD";
 export interface EndpointConfig<T extends Column = Column> {
@@ -37,7 +28,6 @@ export interface EndpointConfig<T extends Column = Column> {
   // The column to filter on for requests that scope by date_from/date_to.
   dateColumn: T;
   dateFormat: DateFormat;
-  admin0Mode: Admin0Mode;
 }
 
 export const endpointConfigs: Record<Endpoint, EndpointConfig> = {
@@ -48,10 +38,9 @@ export const endpointConfigs: Record<Endpoint, EndpointConfig> = {
       SURVEY_COLUMNS.MUTATION,
     ],
     requestableProperties: Object.values(SURVEY_COLUMNS),
-    filterableParams: ["admin0", "survey_id", "date_from", "date_to", "gene", "mutation"],
+    filterableParams: ["bbox", "survey_id", "date_from", "date_to", "gene", "mutation"],
     dateColumn: "collection_day",
     dateFormat: "YYYY-MM-DD",
-    admin0Mode: "bounds",
   },
   "/prevalences": {
     requiredParams: [
@@ -64,6 +53,5 @@ export const endpointConfigs: Record<Endpoint, EndpointConfig> = {
     filterableParams: ["admin0", "admin1", "admin2", "gene", "mutation", "date", "date_from", "date_to"],
     dateColumn: "date",
     dateFormat: "YYYY-MM",
-    admin0Mode: "column",
   },
 } as const;

@@ -140,11 +140,11 @@ describe('executeParquetQuery SQL generation', () => {
     expect(db.bind).toHaveBeenCalledWith({ admin0: 'MLI' });
   });
 
-  it('expands survey admin0 into latitude and longitude bounds', async () => {
+  it('filters survey data using latitude and longitude bounds', async () => {
     const response = mockResponse();
 
     await executeParquetQuery(
-      { properties: 'survey_id', admin0: 'MLI', date_from: '2010-01-01', date_to: '2010-02-01' },
+      { properties: 'survey_id', bbox: '-12.2389,10.1595,4.245,25', date_from: '2010-01-01', date_to: '2010-02-01' },
       '/surveys',
       surveyPath,
       response,
@@ -161,18 +161,48 @@ describe('executeParquetQuery SQL generation', () => {
     });
   });
 
-  it('sends a 400 after getting an unknown ISO code', async () => {
+  it('sends a 400 after getting a partial bounding box', async () => {
     const response = mockResponse();
 
     const result = await executeParquetQuery(
-      { properties: 'survey_id', admin0: 'ZZZ' },
+      { properties: 'survey_id', bbox: '1,2' },
       '/surveys',
       surveyPath,
       response,
     );
 
     expect(result).toBeUndefined();
-    expect(response.send).toHaveBeenCalledWith({ error: 'ISO code not found: ZZZ' });
+    expect(response.send).toHaveBeenCalledWith({ error: 'Invalid bbox: 1,2' });
+    expect(db.prepare).not.toHaveBeenCalled();
+  });
+
+  it('sends a 400 after getting an invalid bounding box', async () => {
+    const response = mockResponse();
+
+    const result = await executeParquetQuery(
+      { properties: 'survey_id', bbox: '1,4,3,2' },
+      '/surveys',
+      surveyPath,
+      response,
+    );
+
+    expect(result).toBeUndefined();
+    expect(response.send).toHaveBeenCalledWith({ error: 'Invalid bbox: 1,4,3,2' });
+    expect(db.prepare).not.toHaveBeenCalled();
+  });
+
+  it('sends a 400 after getting a bounding box that crosses the antimeridian', async () => {
+    const response = mockResponse();
+
+    const result = await executeParquetQuery(
+      { properties: 'survey_id', bbox: '170,10,-170,20' },
+      '/surveys',
+      surveyPath,
+      response,
+    );
+
+    expect(result).toBeUndefined();
+    expect(response.send).toHaveBeenCalledWith({ error: 'Bounding box should not cross antimeridian' });
     expect(db.prepare).not.toHaveBeenCalled();
   });
 

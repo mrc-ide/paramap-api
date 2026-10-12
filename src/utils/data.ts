@@ -78,13 +78,10 @@ const buildWhereClause = (queryParams: QueryParams, config: EndpointConfig, res:
   const paramsToFilter = config.filterableParams.filter(param => !!queryParams[param]);
 
   for (const paramName of paramsToFilter) {
-    if (paramName === "admin0" && config.admin0Mode === "bounds") {
-      const region = admin0RegionMetadata.find(({ id }) => id === queryParams.admin0);
-      if (!region) {
-        sendErrorResponse(res, `ISO code not found: ${queryParams.admin0}`, 400);
-        return;
-      }
-      whereClauses.push(buildBoundsClause(region));
+    if (paramName === "bbox") {
+      const boundsClause = buildBoundsClause(queryParams, res);
+      if (!boundsClause) return;
+      whereClauses.push(boundsClause);
       continue;
     }
     const column = ["date_from", "date_to"].includes(paramName) ? config.dateColumn : paramName;
@@ -100,14 +97,27 @@ const buildWhereClause = (queryParams: QueryParams, config: EndpointConfig, res:
   return { whereClause, bindings };
 };
 
-const buildBoundsClause = (region: Admin0RegionMetadata) => {
-  const bounds = region.bounds;
+const buildBoundsClause = (queryParams: QueryParams, res: Response) => {
+  const bounds = queryParams.bbox;
+  if (!bounds) {
+    sendErrorResponse(res, "Invalid bbox parameter", 400);
+    return;
+  };
+  const [minLng, minLat, maxLng, maxLat] = bounds.split(',').map(Number);
+  if (!(minLng && minLat && maxLng && maxLat) || minLat > maxLat) {
+    sendErrorResponse(res, `Invalid bbox: ${bounds}`, 400);
+    return;
+  }
+  if (minLng > maxLng) {
+    sendErrorResponse(res, "Bounding box should not cross antimeridian", 400);
+    return;
+  }
 
   return [
-    `${tableName}.${SURVEY_COLUMNS.LAT} >= ${bounds.min.lat}`,
-    `${tableName}.${SURVEY_COLUMNS.LAT} <= ${bounds.max.lat}`,
-    `${tableName}.${SURVEY_COLUMNS.LNG} >= ${bounds.min.lng}`,
-    `${tableName}.${SURVEY_COLUMNS.LNG} <= ${bounds.max.lng}`
+    `${tableName}.${SURVEY_COLUMNS.LAT} >= ${minLat}`,
+    `${tableName}.${SURVEY_COLUMNS.LAT} <= ${maxLat}`,
+    `${tableName}.${SURVEY_COLUMNS.LNG} >= ${minLng}`,
+    `${tableName}.${SURVEY_COLUMNS.LNG} <= ${maxLng}`
   ].join(" AND ");
 };
 

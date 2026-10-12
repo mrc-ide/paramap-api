@@ -103,7 +103,7 @@ describe('GET /surveys', () => {
       .get('/surveys')
       .query({
         ...baseQuery,
-        admin0: 'MLI',
+        bbox: '-12.2389,10.1595,4.245,25', // Mali
         date_from: '2000-01-01',
         date_to: '2030-02-01',
         properties: pointProperties,
@@ -116,19 +116,6 @@ describe('GET /surveys', () => {
       'WWARN_16154388_mali_1998',
       's0136_Bunkpurugu_period1',
     ]));
-  });
-
-  it('rejects an ISO code absent from the bounds metadata', async () => {
-    const response = await request(app)
-      .get('/surveys')
-      .query({
-        ...baseQuery,
-        admin0: 'ZZZ',
-        properties: 'survey_id',
-      });
-
-    expect(response.status).toBe(400);
-    expect(response.body).toEqual({ error: 'ISO code not found: ZZZ' });
   });
 
   it('uses the data release of the latest model release when none is specified', async () => {
