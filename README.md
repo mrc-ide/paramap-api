@@ -247,4 +247,4 @@ The [variantstring](https://github.com/mrc-ide/variantstring) format encodes gen
 
 ### Dates
 
-Model outputs ('prevalences') will be provided per-month, which we encode as the first of each month. Unlike prevalences, the dates of surveys are not snapped to the first of the month, but can be any day.
+Model outputs ('prevalences') are provided per month. By contrast, [surveys are per day](https://mrc-ide.github.io/STAVE/articles/howto_surveys_table.html#fields-and-requirements).
