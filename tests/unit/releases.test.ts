@@ -1,6 +1,6 @@
 import type { Request } from 'express';
 import { describe, expect, it, vi } from 'vitest';
-import { getModelRelease } from '../../src/utils/releases.ts';
+import { getDataRelease, getModelRelease } from '../../src/utils/releases.ts';
 
 vi.mock('../../src/constants.ts', () => ({
   modelVersions: ['v0.1.0', 'v0.9.0', 'v0.10.0'],
@@ -15,6 +15,20 @@ describe('getModelRelease', () => {
     const req = { query: {} } as Request;
 
     expect(getModelRelease(req)).toBe('v0.10.0');
+  });
+
+  describe('getDataRelease', () => {
+    it('defaults to the data release specified in the latest model metadata', () => {
+      const req = { query: {} } as Request;
+
+      expect(getDataRelease(req)).toBe('v0.1.0');
+    });
+
+    it('uses an explicitly requested release instead of the default data release', () => {
+      const req = { query: { data_release: 'v0.9.0' } } as unknown as Request;
+
+      expect(getDataRelease(req)).toBe('v0.9.0');
+    });
   });
 
   it('uses an explicitly requested release instead of the latest release', () => {
