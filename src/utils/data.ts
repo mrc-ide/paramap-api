@@ -2,7 +2,7 @@ import { type Response } from 'express';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { connection } from '../queryEngine.ts';
-import config from '../config/config.ts';
+import config from '../config.ts';
 import type { Column, QueryParams } from '../types.ts';
 import { validateRequestedProperties } from './validators.ts';
 import type { DuckDBResultReader } from '@duckdb/node-api';
@@ -98,11 +98,7 @@ const buildWhereClause = (queryParams: QueryParams, config: EndpointConfig, res:
 };
 
 const buildBoundsClause = (queryParams: QueryParams, res: Response) => {
-  const bounds = queryParams.bbox;
-  if (!bounds) {
-    sendErrorResponse(res, "Invalid bbox parameter", 400);
-    return;
-  };
+  const bounds = queryParams.bbox!;
   const [minLng, minLat, maxLng, maxLat] = bounds.split(',').map(Number);
   if (!(minLng && minLat && maxLng && maxLat) || minLat > maxLat) {
     sendErrorResponse(res, `Invalid bbox: ${bounds}`, 400);
