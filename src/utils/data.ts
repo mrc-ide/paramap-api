@@ -99,8 +99,9 @@ const buildWhereClause = (queryParams: QueryParams, config: EndpointConfig, res:
 
 const buildBoundsClause = (queryParams: QueryParams, res: Response) => {
   const bounds = queryParams.bbox!;
-  const [minLng, minLat, maxLng, maxLat] = bounds.split(',').map(Number);
-  if (!(minLng && minLat && maxLng && maxLat) || minLat > maxLat) {
+  const coords = bounds.split(',').map(parseFloat);
+  const [minLng, minLat, maxLng, maxLat] = coords;
+  if (coords.length !== 4 || coords.some(isNaN) || minLat > maxLat) {
     sendErrorResponse(res, `Invalid bbox: ${bounds}`, 400);
     return;
   }

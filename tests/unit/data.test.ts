@@ -144,7 +144,7 @@ describe('executeParquetQuery SQL generation', () => {
     const response = mockResponse();
 
     await executeParquetQuery(
-      { properties: 'survey_id', bbox: '-12.2389,10.1595,4.245,25', date_from: '2010-01-01', date_to: '2010-02-01' },
+      { properties: 'survey_id', bbox: '-12.2389,10.1595,0,25', date_from: '2010-01-01', date_to: '2010-02-01' },
       '/surveys',
       surveyPath,
       response,
@@ -152,7 +152,7 @@ describe('executeParquetQuery SQL generation', () => {
 
     expect(db.prepare).toHaveBeenCalledWith(
       `SELECT p.survey_id FROM '${surveyPath}' p WHERE ` +
-      'p.lat >= 10.1595 AND p.lat <= 25 AND p.lng >= -12.2389 AND p.lng <= 4.245 ' +
+      'p.lat >= 10.1595 AND p.lat <= 25 AND p.lng >= -12.2389 AND p.lng <= 0 ' +
       'AND p.collection_day >= $date_from AND p.collection_day <= $date_to',
     );
     expect(db.bind).toHaveBeenCalledWith({
