@@ -1,4 +1,4 @@
-import type { Request } from 'express';
+import type { Response } from 'express';
 import { describe, expect, it, vi } from 'vitest';
 import { getDataRelease, getModelRelease } from '../../src/utils/releases.ts';
 
@@ -12,28 +12,20 @@ vi.mock('node:fs/promises', () => ({
 
 describe('getModelRelease', () => {
   it('defaults to v0.10.0 rather than v0.9.0 using semantic-version order', () => {
-    const req = { query: {} } as Request;
-
-    expect(getModelRelease(req)).toBe('v0.10.0');
+    expect(getModelRelease({}, {} as Response)).toBe('v0.10.0');
   });
 
   it('uses an explicitly requested release instead of the latest release', () => {
-    const req = { query: { model_release: 'v0.9.0' } } as unknown as Request;
-
-    expect(getModelRelease(req)).toBe('v0.9.0');
+    expect(getModelRelease({ model_release: 'v0.9.0' }, {} as Response)).toBe('v0.9.0');
   });
 });
 
 describe('getDataRelease', () => {
   it('defaults to the data release specified in the latest model metadata', () => {
-    const req = { query: {} } as Request;
-
-    expect(getDataRelease(req)).toBe('v1.2.3');
+    expect(getDataRelease({}, {} as Response)).toBe('v1.2.3');
   });
 
   it('uses an explicitly requested release instead of the default data release', () => {
-    const req = { query: { data_release: 'v9.9.9' } } as unknown as Request;
-
-    expect(getDataRelease(req)).toBe('v9.9.9');
+    expect(getDataRelease({ data_release: 'v9.9.9' }, {} as Response)).toBe('v9.9.9');
   });
 });

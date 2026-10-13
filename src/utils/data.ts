@@ -1,14 +1,16 @@
 import { type Response } from 'express';
+import type { Query } from 'express-serve-static-core';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { connection } from '../queryEngine.ts';
 import config from '../config.ts';
-import type { Column, QueryParams } from '../types.ts';
+import type { Column } from '../types.ts';
 import { validateRequestedProperties } from './validators.ts';
 import type { DuckDBResultReader } from '@duckdb/node-api';
 import { SURVEY_COLUMNS } from '../constants.ts';
 import { endpointConfigs, type Endpoint, type EndpointConfig } from './endpoints.ts';
 import { sendErrorResponse } from './helpers.ts';
+import { getQueryParamArr, getQueryParamStr } from './query.ts';
 
 export interface Bounds {
   min: { lat: number; lng: number };
@@ -29,7 +31,7 @@ const tableName = "p";
 
 // Build and run an SQL query out of the requested properties and filters.
 export const executeParquetQuery = async (
-  queryParams: QueryParams,
+  queryParams: Query,
   path: Endpoint,
   parquetPath: string,
   res: Response,
@@ -37,9 +39,8 @@ export const executeParquetQuery = async (
   const config = endpointConfigs[path];
 
   const parquetColumns = await inspectColumns(parquetPath);
-  const properties = queryParams.properties
-    ?.split(',')
-    .map(p => p as Column)
+  const properties = getQueryParamArr(res, queryParams, "properties")
+    ?.map(p => p as Column)
     .filter(p => !!p) ?? [];
 
   if (!validateRequestedProperties(properties, config.requestableProperties, parquetColumns, res)) {
@@ -69,7 +70,7 @@ const inspectColumns = async (parquetPath: string): Promise<Record<Column, strin
   })) as Record<Column, string>;
 };
 
-const buildWhereClause = (queryParams: QueryParams, config: EndpointConfig, res: Response): {
+const buildWhereClause = (queryParams: Query, config: EndpointConfig, res: Response): {
   whereClause: string
   bindings: Record<string, string | null>
 } | undefined => {
@@ -87,7 +88,7 @@ const buildWhereClause = (queryParams: QueryParams, config: EndpointConfig, res:
     const column = ["date_from", "date_to"].includes(paramName) ? config.dateColumn : paramName;
     const comparison = paramName === "date_from" ? ">=" : paramName === "date_to" ? "<=" : "=";
 
-    const paramVal = queryParams[paramName];
+    const paramVal = getQueryParamStr(res, queryParams, paramName);
     whereClauses.push(`${tableName}.${column} ${comparison} $${paramName}`);
     bindings[paramName] = paramVal ?? null;
   }
@@ -97,12 +98,12 @@ const buildWhereClause = (queryParams: QueryParams, config: EndpointConfig, res:
   return { whereClause, bindings };
 };
 
-const buildBoundsClause = (queryParams: QueryParams, res: Response) => {
-  const bounds = queryParams.bbox!;
-  const coords = bounds.split(',').map(parseFloat);
+const buildBoundsClause = (queryParams: Query, res: Response) => {
+  const bounds = getQueryParamArr(res, queryParams, "bbox");
+  const coords = (bounds ?? []).map(parseFloat);
   const [minLng, minLat, maxLng, maxLat] = coords;
   if (coords.length !== 4 || coords.some(isNaN) || minLat > maxLat) {
-    sendErrorResponse(res, `Invalid bbox: ${bounds}`, 400);
+    sendErrorResponse(res, `Invalid bbox: ${bounds?.join(", ")}`, 400);
     return;
   }
   if (minLng > maxLng) {

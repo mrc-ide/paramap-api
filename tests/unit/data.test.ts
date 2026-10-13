@@ -144,7 +144,7 @@ describe('executeParquetQuery SQL generation', () => {
     const response = mockResponse();
 
     await executeParquetQuery(
-      { properties: 'survey_id', bbox: '-12.2389,10.1595,0,25', date_from: '2010-01-01', date_to: '2010-02-01' },
+      { properties: 'survey_id', bbox: ['-12.2389','10.1595','0','25'], date_from: '2010-01-01', date_to: '2010-02-01' },
       '/surveys',
       surveyPath,
       response,
@@ -165,14 +165,14 @@ describe('executeParquetQuery SQL generation', () => {
     const response = mockResponse();
 
     const result = await executeParquetQuery(
-      { properties: 'survey_id', bbox: '1,2' },
+      { properties: 'survey_id', bbox: ['1','2'] },
       '/surveys',
       surveyPath,
       response,
     );
 
     expect(result).toBeUndefined();
-    expect(response.send).toHaveBeenCalledWith({ error: 'Invalid bbox: 1,2' });
+    expect(response.send).toHaveBeenCalledWith({ error: 'Invalid bbox: 1, 2' });
     expect(db.prepare).not.toHaveBeenCalled();
   });
 
@@ -180,14 +180,14 @@ describe('executeParquetQuery SQL generation', () => {
     const response = mockResponse();
 
     const result = await executeParquetQuery(
-      { properties: 'survey_id', bbox: '1,4,3,2' },
+      { properties: 'survey_id', bbox: ['1','4','3','2'] },
       '/surveys',
       surveyPath,
       response,
     );
 
     expect(result).toBeUndefined();
-    expect(response.send).toHaveBeenCalledWith({ error: 'Invalid bbox: 1,4,3,2' });
+    expect(response.send).toHaveBeenCalledWith({ error: 'Invalid bbox: 1, 4, 3, 2' });
     expect(db.prepare).not.toHaveBeenCalled();
   });
 

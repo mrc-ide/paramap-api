@@ -4,6 +4,7 @@ import type { Column } from '../types.ts';
 import { getDataRelease, getModelRelease } from './releases.ts';
 import { endpointConfigs, type DateFormat, type Endpoint } from './endpoints.ts';
 import { sendErrorResponse } from './helpers.ts';
+import { getQueryParamStr } from './query.ts';
 
 const dateRegexes: Record<DateFormat, RegExp> = {
   "YYYY-MM": /^(19|20)\d{2}-(0[1-9]|1[0-2])$/,
@@ -48,7 +49,7 @@ export const validateRequestedProperties = (
 // by checking the requested version is a filepath within the relevant data directory.
 
 export const validateModelRelease = (req: Request, res: Response): boolean => {
-  const modelVersion = getModelRelease(req);
+  const modelVersion = getModelRelease(req.query, res);
   if (!modelVersions.includes(modelVersion)) {
     sendErrorResponse(res, `Unknown model release: ${modelVersion}`, 404);
     return false;
@@ -57,7 +58,7 @@ export const validateModelRelease = (req: Request, res: Response): boolean => {
 };
 
 export const validateDataRelease = (req: Request, res: Response): boolean => {
-  const dataVersion = getDataRelease(req);
+  const dataVersion = getDataRelease(req.query, res);
   if (!dataVersions.includes(dataVersion)) {
     sendErrorResponse(res, `Unknown data release requested: ${dataVersion}`, 404);
     return false;
@@ -68,10 +69,9 @@ export const validateDataRelease = (req: Request, res: Response): boolean => {
 export const validateDateParams = (req: Request, res: Response): boolean => {
   const path = req.path as Endpoint;
   const dateFormat = endpointConfigs[path].dateFormat;
-  const queryParams = req.query as Record<string, string | undefined>;
 
   for (const param of ["date", "date_from", "date_to"]) {
-    const value = queryParams[param];
+    const value = getQueryParamStr(res, req.query, param);
     if (!value) continue;
     const isValid = dateRegexes[dateFormat].test(value);
     if (!isValid) {
@@ -80,10 +80,9 @@ export const validateDateParams = (req: Request, res: Response): boolean => {
     }
   }
 
-  const date_from = queryParams.date_from;
-  const date_to = queryParams.date_to;
+  const [dateFrom, dateTo] = ["date_from", "date_to"].map(p => getQueryParamStr(res, req.query, p));
 
-  if (date_from && date_to && date_from > date_to) {
+  if (dateFrom && dateTo && dateFrom > dateTo) {
     sendErrorResponse(res, "'date_from' cannot be later than 'date_to'.", 400);
     return false;
   }
@@ -91,14 +90,14 @@ export const validateDateParams = (req: Request, res: Response): boolean => {
 };
 
 export const validateAdminLevel = (req: Request, res: Response): boolean => {
-  const adminLevel = req.query['admin_level'] as string | undefined;
+  const adminLevel = getQueryParamStr(res, req.query, "admin_level");
   if (!adminLevel || !adminLevels.includes(adminLevel)) {
     sendErrorResponse(res, `Invalid admin level requested: ${adminLevel}`, 400);
     return false;
   }
   // Validate admin_level against admin0, admin1, admin2 parameters if they exist.
   for (const level of adminLevels) {
-    if (req.query[`admin${level}`] && Number(adminLevel) < Number(level)) {
+    if (getQueryParamStr(res, req.query, `admin${level}`) && Number(adminLevel) < Number(level)) {
       sendErrorResponse(res, "You cannot request results at a less granular level than that of the containing region.", 400);
       return false;
     }
