@@ -1,4 +1,3 @@
-import type { Response } from "express";
 import { readFile } from "node:fs/promises";
 import semver from "semver";
 import { join } from "node:path";
@@ -24,8 +23,8 @@ const latestModelRelease = semver.rsort([...modelVersions])[0];
 // is the one that the default model release depends on.
 export const defaultDataRelease = (await readModelMetadata(latestModelRelease)).data_release;
 
-export const getModelRelease = (queryParams: Query, res: Response): string =>
-  getQueryParamStr(res, queryParams, "model_release") ?? latestModelRelease;
+export const getModelRelease = (queryParams: Query): string =>
+  getQueryParamStr(queryParams, "model_release") ?? latestModelRelease;
 
-export const getDataRelease = (queryParams: Query, res: Response): string =>
-  getQueryParamStr(res, queryParams, "data_release") ?? defaultDataRelease;
+export const getDataRelease = (queryParams: Query): string =>
+  getQueryParamStr(queryParams, "data_release") ?? defaultDataRelease;

@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../../src/app.ts';
 import { connection } from '../../src/queryEngine.ts';
 import fixtureConfig from '../fixtures/fixture-config.json' with { type: 'json' };
+import { AppError } from '../../src/middlewares/errorHandler.ts';
 
 const app = createApp();
 
@@ -20,6 +21,17 @@ describe('error handling middleware', () => {
 
     expect(response.status).toBe(500);
     expect(response.body).toEqual({ error: 'DuckDB exploded' });
+  });
+
+  it('returns a response with specified status code when a route handler throws', async () => {
+    vi.spyOn(connection, 'runAndReadAll').mockRejectedValueOnce(new AppError('You did not say please', 400));
+
+    const response = await request(app)
+      .get('/metadata')
+      .query({ model_release: fixtureConfig.modelRelease });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ error: 'You did not say please' });
   });
 
   it('falls back to a generic message when the error has none', async () => {

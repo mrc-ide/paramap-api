@@ -1,10 +1,10 @@
-import { type Request, type Response } from 'express';
+import { type Request } from 'express';
 import { modelVersions, dataVersions, adminLevels } from '../constants.ts';
 import type { Column } from '../types.ts';
 import { getDataRelease, getModelRelease } from './releases.ts';
 import { endpointConfigs, type DateFormat, type Endpoint } from './endpoints.ts';
-import { sendErrorResponse } from './helpers.ts';
 import { getQueryParamStr } from './query.ts';
+import { AppError } from '../middlewares/errorHandler.ts';
 
 const dateRegexes: Record<DateFormat, RegExp> = {
   "YYYY-MM": /^(19|20)\d{2}-(0[1-9]|1[0-2])$/,
@@ -13,94 +13,77 @@ const dateRegexes: Record<DateFormat, RegExp> = {
 
 export const validateRequiredQueryParams = (
   req: Request,
-  res: Response,
-): boolean => {
+) => {
   const path = req.path as Endpoint;
   const missingParams = endpointConfigs[path].requiredParams.filter(param => !req.query[param]);
   if (missingParams.length > 0) {
-    sendErrorResponse(res, `Missing required query parameters: ${missingParams.join(', ')}`, 400);
-    return false;
+    throw new AppError(`Missing required query parameters: ${missingParams.join(', ')}`, 400);
   }
-  return true;
 };
 
 export const validateRequestedProperties = (
   requestedProperties: string[],
   requestableProperties: Column[], // provided by endpoint config
   parquetColumns: { [K in Column]?: string },
-  res: Response,
-): boolean => {
+) => {
   if (requestedProperties.length === 0) {
-    sendErrorResponse(res, "At least one property must be requested.", 400);
-    return false;
+    throw new AppError("At least one property must be requested.", 400);
   }
   const availableColumns = Object.keys(parquetColumns);
   const invalid = requestedProperties.find((p) => {
     return !(requestableProperties as string[]).includes(p) || !availableColumns.includes(p);
   });
   if (invalid) {
-    sendErrorResponse(res, `Invalid property requested: ${invalid}`, 400);
-    return false;
+    throw new AppError(`Invalid property requested: ${invalid}`, 400);
   }
-  return true;
 };
 
 // The release-version validators below are intended to guard against SQL injection
 // by checking the requested version is a filepath within the relevant data directory.
 
-export const validateModelRelease = (req: Request, res: Response): boolean => {
-  const modelVersion = getModelRelease(req.query, res);
+export const validateModelRelease = (req: Request) => {
+  const modelVersion = getModelRelease(req.query);
   if (!modelVersions.includes(modelVersion)) {
-    sendErrorResponse(res, `Unknown model release: ${modelVersion}`, 404);
-    return false;
+    throw new AppError(`Unknown model release: ${modelVersion}`, 404);
   }
-  return true;
 };
 
-export const validateDataRelease = (req: Request, res: Response): boolean => {
-  const dataVersion = getDataRelease(req.query, res);
+export const validateDataRelease = (req: Request) => {
+  const dataVersion = getDataRelease(req.query);
   if (!dataVersions.includes(dataVersion)) {
-    sendErrorResponse(res, `Unknown data release requested: ${dataVersion}`, 404);
-    return false;
+    throw new AppError(`Unknown data release requested: ${dataVersion}`, 404);
   }
-  return true;
 };
 
-export const validateDateParams = (req: Request, res: Response): boolean => {
+export const validateDateParams = (req: Request) => {
   const path = req.path as Endpoint;
   const dateFormat = endpointConfigs[path].dateFormat;
 
   for (const param of ["date", "date_from", "date_to"]) {
-    const value = getQueryParamStr(res, req.query, param);
+    const value = getQueryParamStr(req.query, param);
     if (!value) continue;
     const isValid = dateRegexes[dateFormat].test(value);
     if (!isValid) {
-      sendErrorResponse(res, `Invalid date for parameter '${param}'. Expected ${dateFormat}.`, 400);
-      return false;
+      throw new AppError(`Invalid date for parameter '${param}'. Expected ${dateFormat}.`, 400);
     }
   }
 
-  const [dateFrom, dateTo] = ["date_from", "date_to"].map(p => getQueryParamStr(res, req.query, p));
+  const [dateFrom, dateTo] = ["date_from", "date_to"].map(p => getQueryParamStr(req.query, p));
 
   if (dateFrom && dateTo && dateFrom > dateTo) {
-    sendErrorResponse(res, "'date_from' cannot be later than 'date_to'.", 400);
-    return false;
+    throw new AppError("'date_from' cannot be later than 'date_to'.", 400);
   }
-  return true;
 };
 
-export const validateAdminLevel = (req: Request, res: Response): boolean => {
-  const adminLevel = getQueryParamStr(res, req.query, "admin_level");
+export const validateAdminLevel = (req: Request) => {
+  const adminLevel = getQueryParamStr(req.query, "admin_level");
   if (!adminLevel || !adminLevels.includes(adminLevel)) {
-    sendErrorResponse(res, `Invalid admin level requested: ${adminLevel}`, 400);
-    return false;
+    throw new AppError(`Invalid admin level requested: ${adminLevel}`, 400);
   }
   // Validate admin_level against admin0, admin1, admin2 parameters if they exist.
   for (const level of adminLevels) {
-    if (getQueryParamStr(res, req.query, `admin${level}`) && Number(adminLevel) < Number(level)) {
-      sendErrorResponse(res, "You cannot request results at a less granular level than that of the containing region.", 400);
-      return false;
+    if (getQueryParamStr(req.query, `admin${level}`) && Number(adminLevel) < Number(level)) {
+      throw new AppError("You cannot request results at a less granular level than that of the containing region.", 400);
     }
   }
-  return true;
 };

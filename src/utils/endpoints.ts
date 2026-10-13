@@ -1,19 +1,19 @@
-import type { Request, Response } from 'express';
+import type { Request } from 'express';
 import { validateRequiredQueryParams, validateDataRelease, validateDateParams, validateModelRelease, validateAdminLevel } from './validators.ts';
 import type { Column } from '../types.ts';
 import { PREVALENCE_COLUMNS, SURVEY_COLUMNS } from '../constants.ts';
 
-export const validateSurveysRequest = (req: Request, res: Response) => {
-  return validateRequiredQueryParams(req, res)
-    && validateDataRelease(req, res)
-    && validateDateParams(req, res);
+export const validateSurveysRequest = (req: Request) => {
+  return validateRequiredQueryParams(req)
+    && validateDataRelease(req)
+    && validateDateParams(req);
 };
 
-export const validatePrevalencesRequest = (req: Request, res: Response) => {
-  return validateRequiredQueryParams(req, res)
-    && validateModelRelease(req, res)
-    && validateDateParams(req, res)
-    && validateAdminLevel(req, res)
+export const validatePrevalencesRequest = (req: Request) => {
+  return validateRequiredQueryParams(req)
+    && validateModelRelease(req)
+    && validateDateParams(req)
+    && validateAdminLevel(req)
 };
 
 export type Endpoint = "/surveys" | "/prevalences";

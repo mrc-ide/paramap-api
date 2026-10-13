@@ -1,4 +1,3 @@
-import type { Response } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { executeParquetQuery } from '../../src/utils/data.ts';
 import fixtureConfig from '../fixtures/fixture-config.json' with { type: 'json' };
@@ -31,15 +30,6 @@ const columnsTypes = {
   lng: 'DOUBLE',
 };
 
-const mockResponse = () => {
-  const response = {
-    status: vi.fn(),
-    send: vi.fn(),
-  };
-  response.status.mockReturnValue(response);
-  return response as unknown as Response;
-};
-
 beforeEach(() => {
   vi.clearAllMocks();
   db.runAndReadAll.mockResolvedValue({
@@ -51,8 +41,6 @@ beforeEach(() => {
 
 describe('executeParquetQuery SQL generation', () => {
   it('uses equality filters and SQL parameter bindings', async () => {
-    const response = mockResponse();
-
     await executeParquetQuery(
       {
         properties: 'admin1,median',
@@ -62,7 +50,6 @@ describe('executeParquetQuery SQL generation', () => {
       },
       '/prevalences',
       admin1ParquetPath,
-      response,
     );
 
     expect(db.prepare).toHaveBeenCalledWith(
@@ -77,8 +64,6 @@ describe('executeParquetQuery SQL generation', () => {
   });
 
   it('maps date ranges to the `date` column for the prevalences endpoint, using inequality operators', async () => {
-    const response = mockResponse();
-
     await executeParquetQuery(
       {
         properties: 'admin1',
@@ -87,7 +72,6 @@ describe('executeParquetQuery SQL generation', () => {
       },
       '/prevalences',
       admin1ParquetPath,
-      response,
     );
 
     expect(db.prepare).toHaveBeenCalledWith(
@@ -101,8 +85,6 @@ describe('executeParquetQuery SQL generation', () => {
   });
 
   it('maps date ranges to the `collection_day` column for the surveys endpoint, using inequality operators', async () => {
-    const response = mockResponse();
-
     await executeParquetQuery(
       {
         properties: 'gene',
@@ -111,7 +93,6 @@ describe('executeParquetQuery SQL generation', () => {
       },
       '/surveys',
       admin1ParquetPath,
-      response,
     );
 
     expect(db.prepare).toHaveBeenCalledWith(
@@ -125,13 +106,10 @@ describe('executeParquetQuery SQL generation', () => {
   });
 
   it('filters prevalence admin0 using the parquet column', async () => {
-    const response = mockResponse();
-
     await executeParquetQuery(
       { properties: 'admin1', admin0: 'MLI' },
       '/prevalences',
       admin1ParquetPath,
-      response,
     );
 
     expect(db.prepare).toHaveBeenCalledWith(
@@ -141,13 +119,10 @@ describe('executeParquetQuery SQL generation', () => {
   });
 
   it('filters survey data using latitude and longitude bounds', async () => {
-    const response = mockResponse();
-
     await executeParquetQuery(
       { properties: 'survey_id', bbox: ['-12.2389','10.1595','0','25'], date_from: '2010-01-01', date_to: '2010-02-01' },
       '/surveys',
       surveyPath,
-      response,
     );
 
     expect(db.prepare).toHaveBeenCalledWith(
@@ -162,58 +137,43 @@ describe('executeParquetQuery SQL generation', () => {
   });
 
   it('sends a 400 after getting a partial bounding box', async () => {
-    const response = mockResponse();
-
-    const result = await executeParquetQuery(
-      { properties: 'survey_id', bbox: ['1','2'] },
-      '/surveys',
-      surveyPath,
-      response,
-    );
-
-    expect(result).toBeUndefined();
-    expect(response.send).toHaveBeenCalledWith({ error: 'Invalid bbox: 1, 2' });
+    await expect(
+      executeParquetQuery(
+        { properties: 'survey_id', bbox: ['1','2'] },
+        '/surveys',
+        surveyPath,
+      ),
+    ).rejects.toThrow('Invalid bbox: 1, 2');
     expect(db.prepare).not.toHaveBeenCalled();
   });
 
   it('sends a 400 after getting an invalid bounding box', async () => {
-    const response = mockResponse();
-
-    const result = await executeParquetQuery(
-      { properties: 'survey_id', bbox: ['1','4','3','2'] },
-      '/surveys',
-      surveyPath,
-      response,
-    );
-
-    expect(result).toBeUndefined();
-    expect(response.send).toHaveBeenCalledWith({ error: 'Invalid bbox: 1, 4, 3, 2' });
+    await expect(
+      executeParquetQuery(
+        { properties: 'survey_id', bbox: ['1','4','3','2'] },
+        '/surveys',
+        surveyPath,
+      ),
+    ).rejects.toThrow('Invalid bbox: 1, 4, 3, 2');
     expect(db.prepare).not.toHaveBeenCalled();
   });
 
   it('sends a 400 after getting a bounding box that crosses the antimeridian', async () => {
-    const response = mockResponse();
-
-    const result = await executeParquetQuery(
-      { properties: 'survey_id', bbox: '170,10,-170,20' },
-      '/surveys',
-      surveyPath,
-      response,
-    );
-
-    expect(result).toBeUndefined();
-    expect(response.send).toHaveBeenCalledWith({ error: 'Bounding box should not cross antimeridian' });
+    await expect(
+      executeParquetQuery(
+        { properties: 'survey_id', bbox: '170,10,-170,20' },
+        '/surveys',
+        surveyPath,
+      ),
+    ).rejects.toThrow('Bounding box should not cross antimeridian');
     expect(db.prepare).not.toHaveBeenCalled();
   });
 
   it('omits WHERE when no filterable parameters are provided', async () => {
-    const response = mockResponse();
-
     await executeParquetQuery(
       { properties: 'admin1' },
       '/prevalences',
       admin1ParquetPath,
-      response,
     );
 
     expect(db.prepare).toHaveBeenCalledWith(
@@ -223,17 +183,13 @@ describe('executeParquetQuery SQL generation', () => {
   });
 
   it('rejects a requested property if it belongs to a different parquet schema', async () => {
-    const response = mockResponse();
-
-    const result = await executeParquetQuery(
-      { properties: 'admin2' },
-      '/prevalences',
-      admin1ParquetPath,
-      response,
-    );
-
-    expect(result).toBeUndefined();
-    expect(response.send).toHaveBeenCalledWith({ error: 'Invalid property requested: admin2' });
+    await expect(
+      executeParquetQuery(
+        { properties: 'admin2' },
+        '/prevalences',
+        admin1ParquetPath,
+      ),
+    ).rejects.toThrow('Invalid property requested: admin2');
     expect(db.prepare).not.toHaveBeenCalled();
   });
 });

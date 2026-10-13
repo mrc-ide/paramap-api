@@ -12,9 +12,9 @@ export const createApp = (): Express => {
   const app: Express = express();
 
   app.get('/metadata', async (req: Request, res: Response) => {
-    if (!validateModelRelease(req, res)) return;
+    validateModelRelease(req);
 
-    const modelVersion = getModelRelease(req.query, res);
+    const modelVersion = getModelRelease(req.query);
     const modelMetadata = await readModelMetadata(modelVersion);
 
     res.send({
@@ -32,25 +32,23 @@ export const createApp = (): Express => {
   });
 
   app.get('/surveys', async (req: Request, res: Response) => {
-    if (!validateSurveysRequest(req, res)) return;
+    validateSurveysRequest(req);
 
-    const dataVersion = getDataRelease(req.query, res);
+    const dataVersion = getDataRelease(req.query);
     const surveyDataParquetPath = surveyDataParquet(dataVersion);
-    const result = await executeParquetQuery(req.query, "/surveys", surveyDataParquetPath, res);
-    if (!result) return;
+    const result = await executeParquetQuery(req.query, "/surveys", surveyDataParquetPath);
 
     res.type("json").send(result.getRowObjectsJson());
   });
 
   app.get('/prevalences', async (req: Request, res: Response) => {
-    if (!validatePrevalencesRequest(req, res)) return;
+    validatePrevalencesRequest(req);
 
-    const modelVersion = getModelRelease(req.query, res);
+    const modelVersion = getModelRelease(req.query);
 
-    const adminLevel = getQueryParamStr(res, req.query, "admin_level") as string;
+    const adminLevel = getQueryParamStr(req.query, "admin_level") as string;
     const prevalencesParquetPath = prevalencesParquet(modelVersion, adminLevel);
-    const result = await executeParquetQuery(req.query, "/prevalences", prevalencesParquetPath, res);
-    if (!result) return;
+    const result = await executeParquetQuery(req.query, "/prevalences", prevalencesParquetPath)!;
 
     res.type("json").send(result.getColumnsObjectJson());
   });
