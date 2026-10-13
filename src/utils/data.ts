@@ -88,9 +88,9 @@ const buildWhereClause = (queryParams: Query, config: EndpointConfig, res: Respo
     const column = ["date_from", "date_to"].includes(paramName) ? config.dateColumn : paramName;
     const comparison = paramName === "date_from" ? ">=" : paramName === "date_to" ? "<=" : "=";
 
-    const paramVal = getQueryParamStr(res, queryParams, paramName);
+    const paramVal = getQueryParamStr(res, queryParams, paramName) as string;
     whereClauses.push(`${tableName}.${column} ${comparison} $${paramName}`);
-    bindings[paramName] = paramVal ?? null;
+    bindings[paramName] = paramVal;
   }
 
   const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
@@ -99,11 +99,11 @@ const buildWhereClause = (queryParams: Query, config: EndpointConfig, res: Respo
 };
 
 const buildBoundsClause = (queryParams: Query, res: Response) => {
-  const bounds = getQueryParamArr(res, queryParams, "bbox");
-  const coords = (bounds ?? []).map(parseFloat);
+  const bounds = getQueryParamArr(res, queryParams, "bbox") as string[];
+  const coords = bounds.map(parseFloat);
   const [minLng, minLat, maxLng, maxLat] = coords;
   if (coords.length !== 4 || coords.some(isNaN) || minLat > maxLat) {
-    sendErrorResponse(res, `Invalid bbox: ${bounds?.join(", ")}`, 400);
+    sendErrorResponse(res, `Invalid bbox: ${bounds.join(", ")}`, 400);
     return;
   }
   if (minLng > maxLng) {

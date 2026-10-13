@@ -47,8 +47,7 @@ export const createApp = (): Express => {
 
     const modelVersion = getModelRelease(req.query, res);
 
-    const adminLevel = getQueryParamStr(res, req.query, "admin_level");
-    if (!adminLevel) return;
+    const adminLevel = getQueryParamStr(res, req.query, "admin_level") as string;
     const prevalencesParquetPath = prevalencesParquet(modelVersion, adminLevel);
     const result = await executeParquetQuery(req.query, "/prevalences", prevalencesParquetPath, res);
     if (!result) return;
