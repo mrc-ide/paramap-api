@@ -9,7 +9,7 @@ const baseQuery = {
   gene: 'crt',
   mutation: '76K',
 };
-const pointProperties = 'survey_id,lat,lng,collection_day,denominator';
+const pointProperties = ['survey_id','lat','lng','collection_day','denominator'];
 
 describe('GET /surveys', () => {
   it('returns global survey points within a date range', async () => {
@@ -77,7 +77,7 @@ describe('GET /surveys', () => {
           'prevalence',
           'prevalence_lower',
           'prevalence_upper',
-        ].join(','),
+        ],
       });
 
     expect(response.status).toBe(200);
@@ -103,7 +103,7 @@ describe('GET /surveys', () => {
       .get('/surveys')
       .query({
         ...baseQuery,
-        admin0: 'MLI',
+        bbox: [-12.2389,10.1595,4.245,25], // Mali
         date_from: '2000-01-01',
         date_to: '2030-02-01',
         properties: pointProperties,
@@ -118,17 +118,19 @@ describe('GET /surveys', () => {
     ]));
   });
 
-  it('rejects an ISO code absent from the bounds metadata', async () => {
+  it('returns a 400 for invalid requests', async () => {
     const response = await request(app)
       .get('/surveys')
       .query({
         ...baseQuery,
-        admin0: 'ZZZ',
-        properties: 'survey_id',
+        bbox: [4.245,25,-12.2389,10.1595],
+        date_from: '2000-01-01',
+        date_to: '2030-02-01',
+        properties: pointProperties,
       });
 
     expect(response.status).toBe(400);
-    expect(response.body).toEqual({ error: 'ISO code not found: ZZZ' });
+    expect(response.body).toEqual({ error: 'Invalid bbox: 4.245, 25, -12.2389, 10.1595. Expected format: min_lng,min_lat,max_lng,max_lat' });
   });
 
   it('uses the data release of the latest model release when none is specified', async () => {

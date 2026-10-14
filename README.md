@@ -105,8 +105,11 @@ GET /surveys?
   &date_to=2010-02-01
   &gene=k13
   &mutation=469Y
+  &bbox=-9.9876,10.1234,-5.5555,15.1515
   &properties=survey_id,lat,lng,collection_day,denominator
 ```
+
+The bbox (bounding box) format is: min lng, min lat, max lng, max lat.
 
 response:
 ```jsonc

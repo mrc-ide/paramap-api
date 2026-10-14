@@ -1,14 +1,15 @@
-import { type Response } from 'express';
+import type { Query } from 'express-serve-static-core';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { connection } from '../queryEngine.ts';
 import config from '../config.ts';
-import type { Column, QueryParams } from '../types.ts';
+import type { Column } from '../types.ts';
 import { validateRequestedProperties } from './validators.ts';
 import type { DuckDBResultReader } from '@duckdb/node-api';
 import { SURVEY_COLUMNS } from '../constants.ts';
 import { endpointConfigs, type Endpoint, type EndpointConfig } from './endpoints.ts';
-import { sendErrorResponse } from './helpers.ts';
+import { getQueryParamArr, getQueryParamStr } from './query.ts';
+import { AppError } from '../middlewares/errorHandler.ts';
 
 export interface Bounds {
   min: { lat: number; lng: number };
@@ -29,26 +30,21 @@ const tableName = "p";
 
 // Build and run an SQL query out of the requested properties and filters.
 export const executeParquetQuery = async (
-  queryParams: QueryParams,
+  queryParams: Query,
   path: Endpoint,
   parquetPath: string,
-  res: Response,
-): Promise<DuckDBResultReader | undefined> => {
+): Promise<DuckDBResultReader> => {
   const config = endpointConfigs[path];
 
   const parquetColumns = await inspectColumns(parquetPath);
-  const properties = queryParams.properties
-    ?.split(',')
-    .map(p => p as Column)
+  const properties = getQueryParamArr(queryParams, "properties")
+    ?.map(p => p as Column)
     .filter(p => !!p) ?? [];
 
-  if (!validateRequestedProperties(properties, config.requestableProperties, parquetColumns, res)) {
-    return;
-  };
+  validateRequestedProperties(properties, config.requestableProperties, parquetColumns);
 
   const selectColumns = properties.map(p => `${tableName}.${p}`).join(", ");
-  const where = buildWhereClause(queryParams, config, res);
-  if (!where) return;
+  const where = buildWhereClause(queryParams, config);
 
   const { whereClause, bindings } = where;
   const sql = `SELECT ${selectColumns} FROM '${parquetPath}' ${tableName} ${whereClause}`;
@@ -69,30 +65,26 @@ const inspectColumns = async (parquetPath: string): Promise<Record<Column, strin
   })) as Record<Column, string>;
 };
 
-const buildWhereClause = (queryParams: QueryParams, config: EndpointConfig, res: Response): {
+const buildWhereClause = (queryParams: Query, config: EndpointConfig): {
   whereClause: string
   bindings: Record<string, string | null>
-} | undefined => {
+} => {
   const whereClauses = [];
   const bindings: Record<string, string | null> = {}; // Map from param name to value for use in prepared statement.
   const paramsToFilter = config.filterableParams.filter(param => !!queryParams[param]);
 
   for (const paramName of paramsToFilter) {
-    if (paramName === "admin0" && config.admin0Mode === "bounds") {
-      const region = admin0RegionMetadata.find(({ id }) => id === queryParams.admin0);
-      if (!region) {
-        sendErrorResponse(res, `ISO code not found: ${queryParams.admin0}`, 400);
-        return;
-      }
-      whereClauses.push(buildBoundsClause(region));
+    if (paramName === "bbox") {
+      const boundsClause = buildBoundsClause(queryParams);
+      whereClauses.push(boundsClause);
       continue;
     }
     const column = ["date_from", "date_to"].includes(paramName) ? config.dateColumn : paramName;
     const comparison = paramName === "date_from" ? ">=" : paramName === "date_to" ? "<=" : "=";
 
-    const paramVal = queryParams[paramName];
+    const paramVal = getQueryParamStr(queryParams, paramName) as string;
     whereClauses.push(`${tableName}.${column} ${comparison} $${paramName}`);
-    bindings[paramName] = paramVal ?? null;
+    bindings[paramName] = paramVal;
   }
 
   const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
@@ -100,14 +92,22 @@ const buildWhereClause = (queryParams: QueryParams, config: EndpointConfig, res:
   return { whereClause, bindings };
 };
 
-const buildBoundsClause = (region: Admin0RegionMetadata) => {
-  const bounds = region.bounds;
+const buildBoundsClause = (queryParams: Query) => {
+  const bounds = getQueryParamArr(queryParams, "bbox") as string[];
+  const coords = bounds.map(parseFloat);
+  const [minLng, minLat, maxLng, maxLat] = coords;
+  if (coords.length !== 4 || !coords.every(isFinite) || minLat > maxLat) {
+    throw new AppError(`Invalid bbox: ${bounds.join(", ")}. Expected format: min_lng,min_lat,max_lng,max_lat`, 400);
+  }
+  if (minLng > maxLng) {
+    throw new AppError("Bounding box should not cross antimeridian. Expected format: min_lng,min_lat,max_lng,max_lat", 400);
+  }
 
   return [
-    `${tableName}.${SURVEY_COLUMNS.LAT} >= ${bounds.min.lat}`,
-    `${tableName}.${SURVEY_COLUMNS.LAT} <= ${bounds.max.lat}`,
-    `${tableName}.${SURVEY_COLUMNS.LNG} >= ${bounds.min.lng}`,
-    `${tableName}.${SURVEY_COLUMNS.LNG} <= ${bounds.max.lng}`
+    `${tableName}.${SURVEY_COLUMNS.LAT} >= ${minLat}`,
+    `${tableName}.${SURVEY_COLUMNS.LAT} <= ${maxLat}`,
+    `${tableName}.${SURVEY_COLUMNS.LNG} >= ${minLng}`,
+    `${tableName}.${SURVEY_COLUMNS.LNG} <= ${maxLng}`
   ].join(" AND ");
 };
 

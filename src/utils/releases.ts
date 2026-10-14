@@ -1,9 +1,10 @@
-import type { Request } from "express";
 import { readFile } from "node:fs/promises";
 import semver from "semver";
 import { join } from "node:path";
 import config from "../config.ts";
 import { modelVersions } from "../constants.ts";
+import { getQueryParamStr } from "./query.ts";
+import type { Query } from "express-serve-static-core";
 
 export interface ModelMetadata {
   version: string;
@@ -22,8 +23,8 @@ const latestModelRelease = semver.rsort([...modelVersions])[0];
 // is the one that the default model release depends on.
 export const defaultDataRelease = (await readModelMetadata(latestModelRelease)).data_release;
 
-export const getModelRelease = (req: Request): string =>
-  (req.query['model_release'] ?? latestModelRelease) as string;
+export const getModelRelease = (queryParams: Query): string =>
+  getQueryParamStr(queryParams, "model_release") ?? latestModelRelease;
 
-export const getDataRelease = (req: Request): string =>
-  (req.query['data_release'] ?? defaultDataRelease) as string;
+export const getDataRelease = (queryParams: Query): string =>
+  getQueryParamStr(queryParams, "data_release") ?? defaultDataRelease;
