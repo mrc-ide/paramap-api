@@ -97,10 +97,10 @@ const buildBoundsClause = (queryParams: Query) => {
   const coords = bounds.map(parseFloat);
   const [minLng, minLat, maxLng, maxLat] = coords;
   if (coords.length !== 4 || coords.some(isNaN) || minLat > maxLat) {
-    throw new AppError(`Invalid bbox: ${bounds.join(", ")}`, 400);
+    throw new AppError(`Invalid bbox: ${bounds.join(", ")}. Expected format: min_lng,min_lat,max_lng,max_lat`, 400);
   }
   if (minLng > maxLng) {
-    throw new AppError("Bounding box should not cross antimeridian", 400);
+    throw new AppError("Bounding box should not cross antimeridian. Expected format: min_lng,min_lat,max_lng,max_lat", 400);
   }
 
   return [

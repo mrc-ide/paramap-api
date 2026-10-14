@@ -41,9 +41,7 @@ describe('validateRequiredQueryParams', () => {
       properties: 'gene',
     });
 
-    expect(
-      validateRequiredQueryParams(req)
-    ).toBe(true);
+    expect(() => validateRequiredQueryParams(req)).not.toThrow();
   });
 });
 
@@ -70,20 +68,20 @@ describe('validateRequestedProperties', () => {
 
   it('returns true if the requested property list is valid', () => {
     expect(
-      validateRequestedProperties(['admin1', 'median'], ['admin1', 'median'], dbTypes)
-    ).toBe(true);
+      () => validateRequestedProperties(['admin1', 'median'], ['admin1', 'median'], dbTypes)
+    ).not.toThrow();
   });
 });
 
 describe('release validators', () => {
   it('accepts a known model release', () => {
     const req = mockReq({ model_release: fixtureConfig.modelRelease });
-    expect(validateModelRelease(req)).toBe(true);
+    expect(() => validateModelRelease(req)).not.toThrow();
   });
 
   it('accepts a missing model release by falling back to the default', () => {
     const req = mockReq({});
-    expect(validateModelRelease(req)).toBe(true);
+    expect(() => validateModelRelease(req)).not.toThrow();
   });
 
   it('rejects an unknown model release', () => {
@@ -94,12 +92,12 @@ describe('release validators', () => {
 
   it('accepts a known data release', () => {
     const req = mockReq({ data_release: fixtureConfig.dataRelease });
-    expect(validateDataRelease(req)).toBe(true);
+    expect(() => validateDataRelease(req)).not.toThrow();
   });
 
   it('accepts a missing data release by falling back to the default', () => {
     const req = mockReq({});
-    expect(validateDataRelease(req)).toBe(true);
+    expect(() => validateDataRelease(req)).not.toThrow();
   });
 
   it('rejects an unknown data release', () => {
@@ -125,7 +123,7 @@ describe('validateDateParams', () => {
   it.each(['date_from', 'date_to'])('does not requires %s with the other date range parameter', (parameter) => {
     const req = mockReq({ [parameter]: '2024-01-01' });
 
-    expect(validateDateParams(req)).toBe(true);
+    expect(() => validateDateParams(req)).not.toThrow();
   });
 
   it('rejects when date_from is later than date_to', () => {
@@ -134,7 +132,7 @@ describe('validateDateParams', () => {
       date_to: '2024-01-01',
     });
 
-    expect(() => validateDateParams(req)).toThrow(`\'date_from\' cannot be later than \'date_to\'.`);
+    expect(() => validateDateParams(req)).toThrow(`'date_from' cannot be later than 'date_to'.`);
   });
 
   it('accepts a valid date range', () => {
@@ -142,7 +140,7 @@ describe('validateDateParams', () => {
       date_from: '2024-01-01',
       date_to: '2025-01-01',
     });
-    expect(validateDateParams(req)).toBe(true);
+    expect(() => validateDateParams(req)).not.toThrow();
   });
 });
 
@@ -165,7 +163,7 @@ describe('validateDateParams for monthly date format', () => {
       date_to: '2024-01',
     }, '/test-month');
 
-    expect(() => validateDateParams(req)).toThrow(`\'date_from\' cannot be later than \'date_to\'.`);
+    expect(() => validateDateParams(req)).toThrow(`'date_from' cannot be later than 'date_to'.`);
   });
 
   it('accepts a valid date range', () => {
@@ -173,7 +171,7 @@ describe('validateDateParams for monthly date format', () => {
       date_from: '2024-01',
       date_to: '2025-01',
     }, '/test-month');
-    expect(validateDateParams(req)).toBe(true);
+    expect(() => validateDateParams(req)).not.toThrow();
   });
 });
 
@@ -207,6 +205,6 @@ describe('validateAdminLevel', () => {
 
   it('accepts a valid level and containing region', () => {
     const req = mockReq({ admin_level: '2', admin1: 'MLI.1_1' });
-    expect(validateAdminLevel(req)).toBe(true);
+    expect(() => validateAdminLevel(req)).not.toThrow();
   });
 });

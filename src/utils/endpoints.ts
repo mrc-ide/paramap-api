@@ -4,16 +4,16 @@ import type { Column } from '../types.ts';
 import { PREVALENCE_COLUMNS, SURVEY_COLUMNS } from '../constants.ts';
 
 export const validateSurveysRequest = (req: Request) => {
-  return validateRequiredQueryParams(req)
-    && validateDataRelease(req)
-    && validateDateParams(req);
+  validateRequiredQueryParams(req)
+  validateDataRelease(req)
+  validateDateParams(req);
 };
 
 export const validatePrevalencesRequest = (req: Request) => {
-  return validateRequiredQueryParams(req)
-    && validateModelRelease(req)
-    && validateDateParams(req)
-    && validateAdminLevel(req)
+  validateRequiredQueryParams(req)
+  validateModelRelease(req)
+  validateDateParams(req)
+  validateAdminLevel(req)
 };
 
 export type Endpoint = "/surveys" | "/prevalences";

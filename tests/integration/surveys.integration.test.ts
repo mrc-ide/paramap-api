@@ -130,7 +130,7 @@ describe('GET /surveys', () => {
       });
 
     expect(response.status).toBe(400);
-    expect(response.body).toEqual({ error: 'Invalid bbox: 4.245, 25, -12.2389, 10.1595' });
+    expect(response.body).toEqual({ error: 'Invalid bbox: 4.245, 25, -12.2389, 10.1595. Expected format: min_lng,min_lat,max_lng,max_lat' });
   });
 
   it('uses the data release of the latest model release when none is specified', async () => {
