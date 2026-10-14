@@ -96,7 +96,7 @@ const buildBoundsClause = (queryParams: Query) => {
   const bounds = getQueryParamArr(queryParams, "bbox") as string[];
   const coords = bounds.map(parseFloat);
   const [minLng, minLat, maxLng, maxLat] = coords;
-  if (coords.length !== 4 || coords.some(isNaN) || minLat > maxLat) {
+  if (coords.length !== 4 || !coords.every(isFinite) || minLat > maxLat) {
     throw new AppError(`Invalid bbox: ${bounds.join(", ")}. Expected format: min_lng,min_lat,max_lng,max_lat`, 400);
   }
   if (minLng > maxLng) {
