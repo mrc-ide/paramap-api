@@ -1,6 +1,6 @@
-# PfDRExplorer
+# PfDR Explorer
 
-This repo contains an API serving two kinds of data to be rendered by PfDRExplorer:
+This repo contains an API serving two kinds of data to be rendered by PfDR Explorer:
 
 1) data points of surveys of genetic markers, which come to us stored in the [STAVE](https://mrc-ide.github.io/STAVE/index.html) schema;
 2) and a surface of model outputs imputed from the survey data, which are essentially interpolated prevalences of the different genetic markers per region. These are provided at three levels of granularity: admin levels 0, 1, and 2.
