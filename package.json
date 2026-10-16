@@ -1,5 +1,5 @@
 {
-  "name": "paramap-api",
+  "name": "pfdr-explorer-api",
   "version": "1.0.0",
   "description": "",
   "license": "ISC",
@@ -15,8 +15,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "generate-test-fixtures": "TS_NODE_TRANSPILE_ONLY=true node --loader ts-node/esm tests/fixtures/generate-test-fixtures.ts",
-    "docker-build-image": "docker build -t paramap-api .",
-    "docker-run": "docker run -e PORT=3000 -p 3000:3000 paramap-api"
+    "docker-build-image": "docker build -t pfdr-explorer-api .",
+    "docker-run": "docker run -e PORT=3000 -p 3000:3000 pfdr-explorer-api"
   },
   "dependencies": {
     "@duckdb/node-api": "^1.5.5-r.2",
